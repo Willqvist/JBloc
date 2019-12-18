@@ -73,10 +73,11 @@ public class Layer implements IRenderable {
     public void onNewBlockSet(int x,int y,int z,short block){
         onBlockSet(x,y,z,block);
 
+        System.out.println("SETTIGNS BLOCK: " + block + " < " + x + " | " + y + " | " + z);
         if(x == 0)
-            rebuild(y,Neighbour.RIGHT);
-        if(x == Chunk.WIDTH-1)
             rebuild(y,Neighbour.LEFT);
+        if(x == Chunk.WIDTH-1)
+            rebuild(y,Neighbour.RIGHT);
         if(z == 0) {
             rebuild(y,Neighbour.FRONT);
         }

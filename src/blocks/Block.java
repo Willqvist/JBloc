@@ -68,4 +68,10 @@ public abstract class Block implements IBlock {
     public AABB getCollisionBox(int x, int y, int z) {
         return ab.move(x,y,z);
     }
+
+    /**
+     * max 15, min 0
+     * @return
+     */
+    public abstract int getLightPenetration();
 }

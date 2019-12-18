@@ -6,7 +6,6 @@ import engine.camera.Camera2D;
 import engine.camera.Camera3D;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
-import engine.model.ModelInstance;
 import engine.render.Renderer;
 import engine.ui.FontProvider;
 import engine.ui.font.Hiero;
@@ -36,6 +35,7 @@ public class Game extends ApplicationAdapter {
         Engine.window.onResize((w,h)->{
             camera.setViewport(w,h);
         });
+
         new GameView();
     }
 

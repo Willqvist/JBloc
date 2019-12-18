@@ -48,6 +48,9 @@ public class Player extends PhysicsEntity {
         if(Engine.key.isKeyPressed(GLFW.GLFW_KEY_ESCAPE)){
             Engine.window.unlockMouse();
         }
+        if(Engine.key.isKeyPressed(GLFW.GLFW_KEY_TAB)){
+            Engine.window.lockMouse();
+        }
 
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_W)){
             Vector3f dir = camera.getDirection(Camera.Direction.FORWARD);
@@ -118,11 +121,8 @@ public class Player extends PhysicsEntity {
 
         if(result.isValid()) {
             Vector3i pos = result.getFace().add(pickedBlockPosition);
-            Chunk c = world.getChunk(ChunkTools.toChunkPosition(pos.x,pos.z));
-            Vector3i bPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z);
             if(!Block.getBlock(blockid).getCollisionBox(pos.x,pos.y,pos.z).isColliding((AABB)this.getCollider())) {
-                c.setBlock(bPos.x, bPos.y, bPos.z, blockid);
-                c.setLightValue(bPos.x, bPos.y, bPos.z, (byte)0);
+                world.setBlock(pos.x, pos.y, pos.z,blockid);
                 DirtyLayerProvider.build();
             }
             //result.getFace()
@@ -147,10 +147,7 @@ public class Player extends PhysicsEntity {
         RayTracer.TraceResult result = traceBlock();
 
         if(result.isValid() && pickedChunk != null) {
-            Chunk c = world.getChunk(ChunkTools.toChunkPosition(pickedBlockPosition.x,pickedBlockPosition.z));
-            Vector3i blockPos = ChunkTools.toBlockPosition(pickedBlockPosition.x,pickedBlockPosition.y,pickedBlockPosition.z);
-            c.setLightValue(blockPos.x, blockPos.y, blockPos.z, (byte)15);
-            c.setBlock(blockPos.x, blockPos.y, blockPos.z, Block.AIR);
+            world.setBlock(pickedBlockPosition.x,pickedBlockPosition.y,pickedBlockPosition.z,Block.AIR);
             DirtyLayerProvider.build();
         }
 

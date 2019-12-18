@@ -25,4 +25,9 @@ public class BasicBlock extends Block {
     public boolean isSolid() {
         return true;
     }
+
+    @Override
+    public int getLightPenetration() {
+        return 0;
+    }
 }

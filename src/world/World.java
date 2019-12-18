@@ -1,5 +1,6 @@
 package world;
 
+import blocks.Block;
 import chunk.*;
 import engine.Engine;
 import engine.camera.Camera3D;
@@ -208,5 +209,13 @@ public class World implements ChunkProvider{
     public void end() {
         ChunkBlockBuilder.join();
         ChunkModelBuilder.join();
+    }
+
+    public void setBlock(int x, int y, int z, short blockid) {
+        Chunk c = getChunk(ChunkTools.toChunkPosition(x,z));
+        Vector3i bPos = ChunkTools.toBlockPosition(x,y,z);
+        Block block = Block.getBlock(blockid);
+        c.setBlock(bPos.x, bPos.y, bPos.z, blockid);
+        c.setLightValue(bPos.x, bPos.y, bPos.z, (byte)block.getLightPenetration());
     }
 }

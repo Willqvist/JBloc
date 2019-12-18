@@ -4,7 +4,7 @@ import engine.physics.AABB;
 import engine.texture.TextureCoordinate;
 
 public class GrassBlock extends Block {
-    private TextureCoordinate top = TextureCoordinate.from(0,0, texture);
+    private TextureCoordinate top = TextureCoordinate.from(1,9, texture);
     private TextureCoordinate bottom = TextureCoordinate.from(2,0, texture);
     private TextureCoordinate side = TextureCoordinate.from(3,0, texture);
     public GrassBlock() {
@@ -26,6 +26,11 @@ public class GrassBlock extends Block {
     @Override
     public boolean isSolid() {
         return true;
+    }
+
+    @Override
+    public int getLightPenetration() {
+        return 0;
     }
 
     @Override

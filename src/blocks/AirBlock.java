@@ -27,4 +27,9 @@ public class AirBlock extends Block {
     public boolean isSolid() {
         return false;
     }
+
+    @Override
+    public int getLightPenetration() {
+        return 15;
+    }
 }
