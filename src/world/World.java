@@ -66,7 +66,14 @@ public class World implements ChunkProvider{
             ChunkModelBuilder.generateChunks();
         }
         player.update();
+        if(player.hasUpdated()) {
+            for(int i = 0; i < chunks.size(); i++){
+                chunks.get(i).testFrustum(camera.getFrustum());
+            }
+        }
+
         if(player.hasMoved()){
+
             Vector3f pos = player.getTransform().getPosition();
             Vector2i cp = ChunkTools.toChunkPosition((int)pos.x,(int)pos.z);
             if(!(lastPosX == cp.x && lastPosZ == cp.y)) {
@@ -174,9 +181,15 @@ public class World implements ChunkProvider{
     }
 
     public void render(Renderer renderer){
+        Engine.window.enableDoubleSideRender(false);
         for(int i = 0; i < chunks.size(); i++){
-            if(chunks.get(i).getCollider().testFrustum(camera.getFrustum()))
-                chunks.get(i).render(renderer);
+            chunks.get(i).render(renderer);
+        }
+
+        Engine.window.enableDoubleSideRender(true);
+
+        for(int i = 0; i < chunks.size(); i++){
+            chunks.get(i).renderTransparent(renderer);
         }
         player.render(renderer);
     }
@@ -214,8 +227,6 @@ public class World implements ChunkProvider{
     public void setBlock(int x, int y, int z, short blockid) {
         Chunk c = getChunk(ChunkTools.toChunkPosition(x,z));
         Vector3i bPos = ChunkTools.toBlockPosition(x,y,z);
-        Block block = Block.getBlock(blockid);
         c.setBlock(bPos.x, bPos.y, bPos.z, blockid);
-        c.setLightValue(bPos.x, bPos.y, bPos.z, (byte)block.getLightPenetration());
     }
 }

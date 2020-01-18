@@ -30,6 +30,7 @@ import java.util.function.Function;
 public class Player extends PhysicsEntity {
     private Camera3D camera;
     private int jumpTick=-10;
+    private boolean updated = false;
     public Player(World world) {
         super(world);
         camera = (Camera3D)Engine.camera.getCamera("main");
@@ -38,13 +39,13 @@ public class Player extends PhysicsEntity {
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(0,150,0);
+        getTransform().setPosition(0,450,0);
         camera.update();
     }
 
     @Override
     protected void onUpdate() {
-
+        updated = true;
         if(Engine.key.isKeyPressed(GLFW.GLFW_KEY_ESCAPE)){
             Engine.window.unlockMouse();
         }
@@ -78,6 +79,7 @@ public class Player extends PhysicsEntity {
         }
         boolean movedMouse = CameraMath.followMouse(camera,Engine.mouse,.002f,0.4f);
         if(movedMouse || moved || !this.velocity.isZero()){
+            updated = true;
             camera.update();
         }
 
@@ -93,6 +95,10 @@ public class Player extends PhysicsEntity {
         if(chunk == null) {
             getVelocity().clear(Axis.Y);
         }
+    }
+
+    public boolean hasUpdated() {
+        return updated;
     }
 
     @Override
@@ -130,20 +136,6 @@ public class Player extends PhysicsEntity {
     }
 
     private void destroyBlock(){
-        /*
-        RayTracer.TraceResult result = trace((pos) -> {
-            Chunk c = world.getChunk(ChunkTools.toChunkPosition(pos.x,pos.z));
-            if(c==null) return false;
-            Vector3i blockPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z);
-            Block b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z));
-            if(b.isSolid()) {
-                c.setBlock(blockPos.x, blockPos.y, blockPos.z, Block.AIR);
-                return true;
-            }
-            return false;
-        });
-
-         */
         RayTracer.TraceResult result = traceBlock();
 
         if(result.isValid() && pickedChunk != null) {

@@ -128,7 +128,9 @@ public class ChunkModelBuilder implements Runnable{
             while (!outChunks.isEmpty()) {
                 LayerModel model = outChunks.pollFirst();
                 model.layer.setModel(model.mBuilder.builders[model.builderIndex].opaqueModelBuilder.build(attributes));
+                model.layer.setTransparentModel(model.mBuilder.builders[model.builderIndex].transparentModelBuilder.build(attributes));
                 model.mBuilder.builders[model.builderIndex].opaqueModelBuilder.clear();
+                model.mBuilder.builders[model.builderIndex].transparentModelBuilder.clear();
                 model.mBuilder.occupiedBuilders[model.builderIndex] = false;
                 model.mBuilder.occupiedBuildersSize --;
                 synchronized (model.mBuilder.waitLock) {
@@ -178,23 +180,23 @@ public class ChunkModelBuilder implements Runnable{
                 for(int z = 0; z < Chunk.DEPTH; z++){
                     Block block = Block.getBlock(c.getBlock(x,y,z));
                     if(block.isRenderable()){
-                        if(!(b = Block.getBlock(c.getBlock(x - 1, y, z))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.LEFT,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x - 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.LEFT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x + 1, y, z))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.RIGHT,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x + 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.RIGHT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y-1, z))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.BOTTOM,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x, y-1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.BOTTOM,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y+1, z))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.TOP,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x, y+1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.TOP,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y, z+1))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.FRONT,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x, y, z+1))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.FRONT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y, z-1))).isRenderable())
-                            addFace(c,opaqueModel,block,BlockFace.BACK,x,yl,z,y);
+                        if(!(b = Block.getBlock(c.getBlock(x, y, z-1))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                            addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.BACK,x,yl,z,y);
 
                     }
                 }
@@ -382,7 +384,7 @@ public class ChunkModelBuilder implements Runnable{
                 LayerModelBuilder b = getBuilder(l.builderIndex);
                 buildLayer(l.layer,b);
                 outLock.lock();
-                if(b.opaqueModelBuilder.isEmpty()){
+                if(b.opaqueModelBuilder.isEmpty() && b.transparentModelBuilder.isEmpty()){
                     occupiedBuildersSize--;
                     occupiedBuilders[l.builderIndex] = false;
                     it.remove();
@@ -398,19 +400,6 @@ public class ChunkModelBuilder implements Runnable{
 
         }
     }
-    /*
-    private static class OutChunk{
-        ModelBuilder builder;
-        private Layer layer;
-        private Object lock;
-        public OutChunk(Object lock,Layer layer,ModelBuilder builder) {
-            this.builder = builder;
-            this.layer = layer;
-            this.lock = lock;
-        }
-    }
-
-     */
 
     private static class OutChunk{
         Object syncLock;

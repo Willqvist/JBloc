@@ -71,8 +71,11 @@ public class Chunk implements ICollideable, ICollisionPool {
                 float noise = SimplexNoise.noise((getX()*Chunk.WIDTH+x)/100f,(getZ()*Chunk.DEPTH+z)/100f)*0.1f;
                 for(int y = 0; y < Chunk.HEIGHT; y++){
                     short block = (120+(HEIGHT-120)*noise > y ? Block.GRASS : Block.AIR);
+                    if( y < 115 && block == Block.AIR) {
+                        block = Block.WATER;
+                    }
                     setBlock(x,y,z, block);
-                    setLightValue(x,y,z,block==Block.AIR ? (byte)15 : 0);
+                    setLightValue(x,y,z, (byte) Block.getBlock(block).getLightPenetration());
                 }
             }
         }
@@ -102,14 +105,24 @@ public class Chunk implements ICollideable, ICollisionPool {
         return this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z];
     }
 
+    private boolean shouldRender = false;
+
+    public void testFrustum(FrustumIntersection frustumIntersection) {
+        shouldRender = getCollider().testFrustum(frustumIntersection);
+    }
 
     public void render(Renderer renderer){
-        if(!renderable) return;
-        //AABBRenderer.setColor(col);
-        //AABBRenderer.render(renderer,this.ab);
+        if(!renderable || !shouldRender) return;
         material.setAlbedoTexture(Block.texture);
         for(int i = 0; i < layers.length; i++){
             layers[i].render(renderer);
+        }
+    }
+
+    public void renderTransparent(Renderer renderer){
+        if(!renderable || !shouldRender) return;
+        for(int i = 0; i < layers.length; i++){
+            layers[i].renderTransparentLayer(renderer);
         }
     }
 
@@ -172,6 +185,7 @@ public class Chunk implements ICollideable, ICollisionPool {
             getLayer(y).onNewBlockSet(x,y,z,block);
 
         this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
+        setLightValue(x,y,z,(byte)Block.getBlock(block).getLightPenetration());
     }
 
     public short getBlock(int x,int y,int z){

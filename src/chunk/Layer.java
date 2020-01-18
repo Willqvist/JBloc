@@ -12,7 +12,7 @@ import engine.tools.RoffColor;
 import java.awt.*;
 
 public class Layer implements IRenderable {
-    private Model model = null;
+    private Model model = null, transparentModel = null;
     private boolean renderable = false;
     private boolean dirty = false;
     private int[] layerOpaque;
@@ -32,15 +32,16 @@ public class Layer implements IRenderable {
     private static AABB ab = new AABB(transform,16,16,16);
     private static RoffColor red = RoffColor.from(Color.RED), grn = RoffColor.from(Color.GREEN);
     protected void render(Renderer renderer){
-        //transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-        //AABBRenderer.setColor(red);
+        transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
         if(model != null) {
-            transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-            //transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-            //AABBRenderer.setColor(grn);
-            renderer.render(this);
-        }else {
-            //AABBRenderer.render(renderer, ab);
+            renderer.render(model,getTransform(),getMaterial());
+        }
+    }
+
+    protected void renderTransparentLayer(Renderer renderer) {
+        transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
+        if(transparentModel != null) {
+            renderer.render(transparentModel,getTransform(),getMaterial());
         }
     }
 
@@ -49,7 +50,6 @@ public class Layer implements IRenderable {
     }
 
     public void onBlockSet(int x,int y,int z,short block){
-        //if(block == 1) renderable = true;
         setDirty(true);
         int ly = toLayerY(y);
         Block b = Block.getBlock(block);
@@ -68,6 +68,22 @@ public class Layer implements IRenderable {
 
     void setDirty(boolean dirty){
         this.dirty = dirty;
+    }
+
+    private void rebuildLayer(int x,int y, int z) {
+        Chunk n;
+        /*
+        if((x == 0 && (n=c.getNeighbour(Neighbour.LEFT)) != null )|| (x >= Chunk.WIDTH && (n=c.getNeighbour(Neighbour.RIGHT)) != null))
+            return n.getLightValue(ChunkTools.toBlockPosition(x),y,z);
+        if((z < 0 && (n=c.getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=c.getNeighbour(Neighbour.BACK)) != null))
+            return n.getLightValue(x,y,ChunkTools.toBlockPosition(z));
+
+        //if(c.isOutsideY(y)) return (byte)15;
+
+        if(x < 0 || z >= Chunk.DEPTH || z < 0 || x >= Chunk.WIDTH)
+            return;
+        */
+        DirtyLayerProvider.addLayer(this);
     }
 
     public void onNewBlockSet(int x,int y,int z,short block){
@@ -89,6 +105,23 @@ public class Layer implements IRenderable {
         }
         if(y % Chunk.LAYER_HEIGHT == 0 && y >= Chunk.LAYER_HEIGHT) {
             DirtyLayerProvider.addLayer(c.getLayer(y-Chunk.LAYER_HEIGHT));
+        }
+
+        if(x== 0 && z == 0) {
+            Layer l = c.getNeighbour(Neighbour.LEFT).getLayer(y);
+            l.rebuild(y,Neighbour.FRONT);
+        }
+        if(x == Chunk.WIDTH - 1 && z == 0) {
+            Layer l = c.getNeighbour(Neighbour.RIGHT).getLayer(y);
+            l.rebuild(y,Neighbour.FRONT);
+        }
+        if(x == 0 && z == Chunk.DEPTH-1) {
+            Layer l = c.getNeighbour(Neighbour.LEFT).getLayer(y);
+            l.rebuild(y,Neighbour.BACK);
+        }
+        if(x == Chunk.WIDTH - 1 && z == Chunk.DEPTH-1) {
+            Layer l = c.getNeighbour(Neighbour.RIGHT).getLayer(y);
+            l.rebuild(y,Neighbour.BACK);
         }
 
         DirtyLayerProvider.addLayer(this);
@@ -135,6 +168,14 @@ public class Layer implements IRenderable {
 
     protected void setModel(Model model){
         this.model = model;
+    }
+
+    public void setTransparentModel(Model model) {
+        transparentModel = model;
+    }
+
+    public void render() {
+
     }
 
     @Override

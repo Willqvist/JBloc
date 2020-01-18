@@ -53,14 +53,16 @@ public abstract class Block implements IBlock {
         blocks[block.getId()] = block;
     }
 
-    public static short AIR = 0;
-    public static short DIRT = 1;
-    public static short GRASS = 2;
+    public static final short AIR = 0;
+    public static final short DIRT = 1;
+    public static final short GRASS = 2;
+    public static final short WATER = 3;
     public static void init(){
         texture = TextureLoader.loadAtlas("blocks.png",16);
         addBlock(new AirBlock());
         addBlock(new BasicBlock(DIRT,TextureCoordinate.from(0,0, texture)));
         addBlock(new GrassBlock());
+        addBlock(new CBlock(WATER,TextureCoordinate.from(12,12,texture),false,false,true,10));
     }
 
     public abstract boolean isSolid();
