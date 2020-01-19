@@ -1,6 +1,7 @@
 package chunk;
 
 import blocks.Block;
+import chunk.builder.ChunkModelBuilder;
 import engine.model.Model;
 import engine.physics.AABB;
 import engine.render.IRenderable;
@@ -12,7 +13,7 @@ import engine.tools.RoffColor;
 import java.awt.*;
 
 public class Layer implements IRenderable {
-    private Model model = null;
+    private Model model = null, transparentModel = null;
     private boolean renderable = false;
     private boolean dirty = false;
     private int[] layerOpaque;
@@ -32,15 +33,17 @@ public class Layer implements IRenderable {
     private static AABB ab = new AABB(transform,16,16,16);
     private static RoffColor red = RoffColor.from(Color.RED), grn = RoffColor.from(Color.GREEN);
     protected void render(Renderer renderer){
-        //transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-        //AABBRenderer.setColor(red);
         if(model != null) {
             transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-            //transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
-            //AABBRenderer.setColor(grn);
-            renderer.render(this);
-        }else {
-            //AABBRenderer.render(renderer, ab);
+            renderer.render(model,transform,getMaterial());
+        }
+    }
+
+    protected void renderTransparent(Renderer renderer){
+
+        if(transparentModel != null) {
+            transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
+            renderer.render(transparentModel,transform,getMaterial());
         }
     }
 
@@ -55,7 +58,7 @@ public class Layer implements IRenderable {
         Block b = Block.getBlock(block);
         layerOpaque[ly] += b.isOpaque() ? 1 : -1;
         layerOpaque[ly] = Math.max(0,layerOpaque[ly]);
-        renderableBlocks += b.isRenderable() ? 1 : -1;
+        renderableBlocks += b.isRenderable() ? 1 : 0;
     }
 
     private boolean isYTop(int y){
@@ -73,7 +76,6 @@ public class Layer implements IRenderable {
     public void onNewBlockSet(int x,int y,int z,short block){
         onBlockSet(x,y,z,block);
 
-        System.out.println("SETTIGNS BLOCK: " + block + " < " + x + " | " + y + " | " + z);
         if(x == 0)
             rebuild(y,Neighbour.LEFT);
         if(x == Chunk.WIDTH-1)
@@ -133,8 +135,12 @@ public class Layer implements IRenderable {
         return y%Chunk.LAYER_HEIGHT;
     }
 
-    protected void setModel(Model model){
+    public void setModel(Model model){
         this.model = model;
+    }
+
+    public void setTransparentModel(Model model){
+        this.transparentModel = model;
     }
 
     @Override
@@ -165,9 +171,8 @@ public class Layer implements IRenderable {
     }
 
     public void rebuild() {
-        Layer l;
         setDirty(false);
-        ChunkModelBuilder.addLayerUnsafe(this);
+        ChunkModelBuilder.addLayer(this);
     }
 
 }

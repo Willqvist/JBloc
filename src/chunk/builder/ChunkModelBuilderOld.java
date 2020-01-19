@@ -1,7 +1,10 @@
-package chunk;
+package chunk.builder;
 
 import blocks.Block;
 import blocks.BlockFace;
+import chunk.Chunk;
+import chunk.Layer;
+import chunk.Neighbour;
 import engine.Engine;
 import engine.camera.Camera3D;
 import engine.model.CustomModelAttribute;
@@ -16,8 +19,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ChunkModelBuilder implements Runnable{
-    private static ChunkModelBuilder[] threads;
+public class ChunkModelBuilderOld implements Runnable{
+    private static ChunkModelBuilderOld[] threads;
     private Thread thread;
     private static final Lock lock = new ReentrantLock();
     private static final Lock outLock = new ReentrantLock();
@@ -44,11 +47,11 @@ public class ChunkModelBuilder implements Runnable{
     };
 
     public static void init(int numThreads){
-        ChunkModelBuilder.numThreads = numThreads;
-        threads = new ChunkModelBuilder[numThreads];
-        Engine.window.onExit(ChunkModelBuilder::onExit);
+        ChunkModelBuilderOld.numThreads = numThreads;
+        threads = new ChunkModelBuilderOld[numThreads];
+        Engine.window.onExit(ChunkModelBuilderOld::onExit);
         for(int i = 0; i < numThreads; i++){
-            threads[i] =new ChunkModelBuilder(i);
+            threads[i] =new ChunkModelBuilderOld(i);
             threads[i].thread = new Thread(threads[i]);
             threads[i].thread.start();
         }
@@ -76,7 +79,7 @@ public class ChunkModelBuilder implements Runnable{
         }
     }
 
-    private ChunkModelBuilder(int id){
+    private ChunkModelBuilderOld(int id){
         for(int i = 0; i < builders.length; i++) {
             builders[i] = new LayerModelBuilder();
             modelPool[i] = new LayerModel();
@@ -91,7 +94,7 @@ public class ChunkModelBuilder implements Runnable{
         //System.out.println("adding chunk: " + (i++));
         Layer[] layers = chunk.getLayers();
         for(int i = 0; i < layers.length; i++) {
-            ChunkModelBuilder.layers.add(layers[i]);
+            ChunkModelBuilderOld.layers.add(layers[i]);
         }
         emptyQueue.signalAll();
         //lock.unlock();
@@ -124,6 +127,7 @@ public class ChunkModelBuilder implements Runnable{
     }
 
     public static void generateChunks(){
+        /*
         if(outLock.tryLock()) {
             while (!outChunks.isEmpty()) {
                 LayerModel model = outChunks.pollFirst();
@@ -138,6 +142,8 @@ public class ChunkModelBuilder implements Runnable{
             }
             outLock.unlock();
         }
+
+         */
     }
 
     public static boolean hasChunk() {
@@ -392,8 +398,23 @@ public class ChunkModelBuilder implements Runnable{
             if(builders.size() > 0) {
                 outLock.lock();
                 builders.forEach(outChunks::add);
+                Engine.invokeLater(this::storeChunks);
                 outLock.unlock();
                 builders.clear();
+            }
+
+        }
+    }
+
+    private void storeChunks() {
+        while (!outChunks.isEmpty()) {
+            LayerModel model = outChunks.pollFirst();
+            model.layer.setModel(model.mBuilder.builders[model.builderIndex].opaqueModelBuilder.build(attributes));
+            model.mBuilder.builders[model.builderIndex].opaqueModelBuilder.clear();
+            model.mBuilder.occupiedBuilders[model.builderIndex] = false;
+            model.mBuilder.occupiedBuildersSize --;
+            synchronized (model.mBuilder.waitLock) {
+                model.mBuilder.waitLock.notify();
             }
 
         }
@@ -453,8 +474,8 @@ public class ChunkModelBuilder implements Runnable{
     private static class LayerModel{
         int builderIndex;
         Layer layer;
-        ChunkModelBuilder mBuilder;
-        public LayerModel set(ChunkModelBuilder mBuilder,int builderIndex, Layer layer) {
+        ChunkModelBuilderOld mBuilder;
+        public LayerModel set(ChunkModelBuilderOld mBuilder, int builderIndex, Layer layer) {
             this.builderIndex = builderIndex;
             this.layer = layer;
             this.mBuilder = mBuilder;

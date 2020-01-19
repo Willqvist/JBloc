@@ -13,7 +13,7 @@ import java.awt.*;
 public class GameView {
 
     public GameView() {
-        Frame frame = UIManager.getFrame();
+        WindowComponent frame = UIManager.getFrame();
         Panel panel = new Panel(Scale.NONE);
         panel.setDimension(18,18);
         Texture crosshair = TextureLoader.load("crosshair.png");

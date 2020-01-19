@@ -2,20 +2,18 @@ package chunk;
 
 import blocks.Block;
 import blocks.WorldBlock;
+import chunk.builder.ChunkModelBuilder;
 import engine.Engine;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
 import engine.physics.AABB;
 import engine.physics.*;
-import engine.render.AABBRenderer;
 import engine.render.Renderer;
 import entities.Entity;
 import entities.PhysicsEntity;
 import org.joml.*;
-import world.World;
 
 import java.lang.Math;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -68,9 +66,12 @@ public class Chunk implements ICollideable, ICollisionPool {
         if(built) return;
         for(int x = 0; x < WIDTH; x++){
             for(int z = 0; z < DEPTH; z++){
-                float noise = SimplexNoise.noise((getX()*Chunk.WIDTH+x)/100f,(getZ()*Chunk.DEPTH+z)/100f)*0.1f;
+                float noise = SimplexNoise.noise((getX()*Chunk.WIDTH+x)/180f,(getZ()*Chunk.DEPTH+z)/180f)*0.05f;
                 for(int y = 0; y < Chunk.HEIGHT; y++){
                     short block = (120+(HEIGHT-120)*noise > y ? Block.GRASS : Block.AIR);
+                    if(y < 120 && block == Block.AIR) {
+                        //block = Block.WATER;
+                    }
                     setBlock(x,y,z, block);
                     setLightValue(x,y,z,block==Block.AIR ? (byte)15 : 0);
                 }
@@ -79,7 +80,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         ab.resize(Chunk.WIDTH,height+1,Chunk.DEPTH);
     }
 
-    protected Layer getLayer(int y){
+    public Layer getLayer(int y){
         return layers[y/LAYER_HEIGHT];
     }
 
@@ -110,6 +111,16 @@ public class Chunk implements ICollideable, ICollisionPool {
         material.setAlbedoTexture(Block.texture);
         for(int i = 0; i < layers.length; i++){
             layers[i].render(renderer);
+        }
+    }
+
+    public void renderTransparency(Renderer renderer) {
+        if(!renderable) return;
+        //AABBRenderer.setColor(col);
+        //AABBRenderer.render(renderer,this.ab);
+        material.setAlbedoTexture(Block.texture);
+        for(int i = 0; i < layers.length; i++){
+            layers[i].renderTransparent(renderer);
         }
     }
 
@@ -234,7 +245,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         return dirty;
     }
 
-    protected boolean hasAllNeighbours() {
+    public boolean hasAllNeighbours() {
         return getNeighbour(Neighbour.LEFT) != null &&
                 getNeighbour(Neighbour.RIGHT) != null &&
                 getNeighbour(Neighbour.FRONT) != null &&
@@ -244,12 +255,9 @@ public class Chunk implements ICollideable, ICollisionPool {
     public void rebuild() {
         if(!dirty || !canBuildModel()) return;
 
-        ChunkModelBuilder.lock();
         for(int i = 0; i < layers.length; i++){
             layers[i].rebuild();
         }
-        ChunkModelBuilder.unlock();
-        ChunkModelBuilder.unlock();
         dirty = false;
     }
 
@@ -370,4 +378,5 @@ public class Chunk implements ICollideable, ICollisionPool {
 
         });
     }
+
 }

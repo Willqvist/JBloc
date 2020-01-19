@@ -11,6 +11,7 @@ import engine.camera.CameraMath;
 import engine.physics.AABB;
 import engine.physics.Axis;
 import engine.physics.Force;
+import engine.physics.Physics;
 import engine.render.AABBRenderer;
 import engine.render.Renderer;
 import org.joml.Vector2f;
@@ -33,12 +34,12 @@ public class Player extends PhysicsEntity {
     public Player(World world) {
         super(world);
         camera = (Camera3D)Engine.camera.getCamera("main");
-        speed = 0.092f;
+        speed = 32.92f;
         ((AABB)getCollider()).resize(0.8f,1.8f,0.8f);
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(0,150,0);
+        getTransform().setPosition(0,450,0);
         camera.update();
     }
 
@@ -76,6 +77,7 @@ public class Player extends PhysicsEntity {
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT)){
             move(0,-1.2f,0, Force.ADD);
         }
+        getVelocity().clear(Axis.Y);
         boolean movedMouse = CameraMath.followMouse(camera,Engine.mouse,.002f,0.4f);
         if(movedMouse || moved || !this.velocity.isZero()){
             camera.update();

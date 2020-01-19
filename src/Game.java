@@ -1,8 +1,7 @@
 import blocks.Block;
-import engine.ApplicationAdapter;
+import engine.Application;
 import engine.Engine;
 import engine.camera.Camera;
-import engine.camera.Camera2D;
 import engine.camera.Camera3D;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
@@ -14,7 +13,7 @@ import shaders.ChunkShader;
 import ui.GameView;
 import world.World;
 
-public class Game extends ApplicationAdapter {
+public class Game implements Application {
     private Camera camera, top;
     private World world;
     @Override
@@ -36,7 +35,7 @@ public class Game extends ApplicationAdapter {
             camera.setViewport(w,h);
         });
 
-        new GameView();
+        //new GameView();
     }
 
     @Override

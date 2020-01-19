@@ -1,5 +1,6 @@
 package chunk;
 
+
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -12,12 +13,10 @@ public class DirtyLayerProvider {
     }
 
     public static void build(){
-        ChunkModelBuilder.lock();
         Iterator<Layer> layers = DirtyLayerProvider.layers.iterator();
         while(layers.hasNext()){
             layers.next().rebuild();
         }
         DirtyLayerProvider.layers.clear();
-        ChunkModelBuilder.unlock();
     }
 }

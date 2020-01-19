@@ -2,21 +2,20 @@ package world;
 
 import blocks.Block;
 import chunk.*;
+import chunk.builder.ChunkBlockBuilder;
+import chunk.builder.ChunkModelBuilder;
 import engine.Engine;
 import engine.camera.Camera3D;
-import engine.physics.IPhysicsBody;
 import engine.render.AABBRenderer;
 import engine.render.Renderer;
 import entities.Entity;
 import entities.PhysicsEntity;
 import entities.Player;
-import entities.Stone;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import settings.Settings;
 
-import java.text.NumberFormat;
 import java.util.*;
 
 public class World implements ChunkProvider{
@@ -27,6 +26,7 @@ public class World implements ChunkProvider{
     private Player player;
     private int lastPosX,lastPosZ;
     private ChunkCache cache;
+    private ChunkSortComparator sortComparator = new ChunkSortComparator();
     public World(){
         camera = (Camera3D) Engine.camera.getCamera("main");
         player = new Player(this);
@@ -48,6 +48,8 @@ public class World implements ChunkProvider{
 
          */
 
+        loadChunks();
+
     }
 
     public void addEntity(Entity entity){
@@ -62,62 +64,67 @@ public class World implements ChunkProvider{
     }
 
     public void update(){
-        if(ChunkModelBuilder.hasChunk()){
-            ChunkModelBuilder.generateChunks();
-        }
+
         player.update();
         if(player.hasMoved()){
-            Vector3f pos = player.getTransform().getPosition();
-            Vector2i cp = ChunkTools.toChunkPosition((int)pos.x,(int)pos.z);
-            if(!(lastPosX == cp.x && lastPosZ == cp.y)) {
-                lastPosX = cp.x;
-                lastPosZ = cp.y;
-
-                if(ChunkBlockBuilder.tryLock()) {
-                    for (int i = -Settings.renderDistance; i <= Settings.renderDistance; i++) {
-                        for (int j = -Settings.renderDistance; j <= Settings.renderDistance; j++) {
-                            int cx = cp.x + i;
-                            int cz = cp.y + j;
-                            int worldX = cx * Chunk.WIDTH;
-                            int worldZ = cz * Chunk.DEPTH;
-                            if (pos.distance(worldX, pos.y, worldZ) > Settings.renderDistance * 23) continue;
-                            Chunk c = getChunk(cx, cz);
-                            if (c == null) {
-                                Chunk nc = new Chunk(this,cx, cz);
-                                addChunkBuild(nc, false);
-                            } else {
-                            /*
-                        if(pos.distance(worldX,pos.y,worldZ) > Settings.renderDistance*23){
-                            c.setRenderable(false);
-                        }else{
-                            c.setRenderable(true);
-                        }
-
-                             */
-
-
-                            }
-
-                    /*
-                    for (int i = 0; i < chunks.size(); i++) {
-                        Chunk c = chunks.get(i);
-                        if (c.getWorldPosition().distance(pos.x, pos.z) > Settings.renderDistance) {
-                            chunks.remove(i);
-                            i--;
-                        }
-                    }
-
-                     */
-                        }
-                    }
-                    ChunkBlockBuilder.unlock();
-                    cullChunks(pos);
-                }
-            }
+            chunks.sort(sortComparator);
+            loadChunks();
         }
 
     }
 
+    private int sortChunks(Chunk c1, Chunk c2) {
+        Vector3f pos = player.getTransform().getPosition();
+        double dist = c1.getWorldPosition().distance((int)pos.x,(int)pos.z);
+        double dist2 = c2.getWorldPosition().distance((int)pos.x,(int)pos.z);
+        return dist < dist2 ? 1 : -1;
+    }
+
+    private void loadChunks() {
+        Vector3f pos = player.getTransform().getPosition();
+        Vector2i cp = ChunkTools.toChunkPosition((int)pos.x,(int)pos.z);
+        if(!(lastPosX == cp.x && lastPosZ == cp.y)) {
+            lastPosX = cp.x;
+            lastPosZ = cp.y;
+            for (int i = -Settings.renderDistance; i <= Settings.renderDistance; i++) {
+                for (int j = -Settings.renderDistance; j <= Settings.renderDistance; j++) {
+                    int cx = cp.x + i;
+                    int cz = cp.y + j;
+                    int worldX = cx * Chunk.WIDTH;
+                    int worldZ = cz * Chunk.DEPTH;
+                    if (pos.distance(worldX, pos.y, worldZ) > Settings.renderDistance * 23) continue;
+                    Chunk c = getChunk(cx, cz);
+                    if (c == null) {
+                        Chunk nc = new Chunk(this,cx, cz);
+                        addChunkBuild(nc, false);
+                    } else {
+                    /*
+                if(pos.distance(worldX,pos.y,worldZ) > Settings.renderDistance*23){
+                    c.setRenderable(false);
+                }else{
+                    c.setRenderable(true);
+                }
+
+                     */
+
+
+                    }
+
+            /*
+            for (int i = 0; i < chunks.size(); i++) {
+                Chunk c = chunks.get(i);
+                if (c.getWorldPosition().distance(pos.x, pos.z) > Settings.renderDistance) {
+                    chunks.remove(i);
+                    i--;
+                }
+            }
+
+             */
+                }
+            }
+            cullChunks(pos);
+        }
+    }
 
 
     private void cullChunks(Vector3f pos){
@@ -140,10 +147,7 @@ public class World implements ChunkProvider{
 
     private void addChunkBuild(Chunk c,boolean safe) {
         addChunk(c);
-        if(safe)
-            ChunkBlockBuilder.addChunk(c);
-        else
-            ChunkBlockBuilder.addChunkUnsafe(c);
+        ChunkBlockBuilder.addChunk(c);
     }
 
     private void addChunk(Chunk c){
@@ -178,6 +182,12 @@ public class World implements ChunkProvider{
             if(chunks.get(i).getCollider().testFrustum(camera.getFrustum()))
                 chunks.get(i).render(renderer);
         }
+
+        for(int i = 0; i < chunks.size(); i++){
+            if(chunks.get(i).getCollider().testFrustum(camera.getFrustum()))
+                chunks.get(i).renderTransparency(renderer);
+        }
+
         player.render(renderer);
     }
 
@@ -208,7 +218,7 @@ public class World implements ChunkProvider{
 
     public void end() {
         ChunkBlockBuilder.join();
-        ChunkModelBuilder.join();
+        ChunkModelBuilder.stop();
     }
 
     public void setBlock(int x, int y, int z, short blockid) {
@@ -217,5 +227,22 @@ public class World implements ChunkProvider{
         Block block = Block.getBlock(blockid);
         c.setBlock(bPos.x, bPos.y, bPos.z, blockid);
         c.setLightValue(bPos.x, bPos.y, bPos.z, (byte)block.getLightPenetration());
+    }
+
+    private class ChunkSortComparator implements Comparator<Chunk> {
+
+        @Override
+        public int compare(Chunk c1, Chunk c2) {
+            Vector3f pos = player.getTransform().getPosition();
+            double dist = c1.getWorldPosition().distanceSquared((int)pos.x,(int)pos.z);
+            double dist2 = c2.getWorldPosition().distanceSquared((int)pos.x,(int)pos.z);
+            if(dist < dist2) {
+                return -1;
+            } else if(dist2 > dist) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
     }
 }

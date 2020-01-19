@@ -56,11 +56,13 @@ public abstract class Block implements IBlock {
     public static short AIR = 0;
     public static short DIRT = 1;
     public static short GRASS = 2;
+    public static short WATER = 3;
     public static void init(){
         texture = TextureLoader.loadAtlas("blocks.png",16);
         addBlock(new AirBlock());
         addBlock(new BasicBlock(DIRT,TextureCoordinate.from(0,0, texture)));
         addBlock(new GrassBlock());
+        addBlock(new BasicBlock(WATER,TextureCoordinate.from(12,12, texture),false,true,false,2));
     }
 
     public abstract boolean isSolid();
