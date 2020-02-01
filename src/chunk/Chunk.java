@@ -1,22 +1,32 @@
 package chunk;
 
+import biome.Biome;
 import blocks.Block;
 import blocks.WorldBlock;
+import chunk.builder.ChunkLightPass;
 import chunk.builder.ChunkModelBuilder;
 import engine.Engine;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
+import engine.model.ModelBuilder;
+import engine.model.ModelInstance;
 import engine.physics.AABB;
 import engine.physics.*;
+import engine.render.AABBRenderer;
 import engine.render.Renderer;
+import engine.tools.RoffColor;
 import entities.Entity;
 import entities.PhysicsEntity;
+import entities.Player;
 import org.joml.*;
+import org.lwjgl.opengl.GL11;
+import world.World;
 
+import java.awt.*;
 import java.lang.Math;
-import java.util.ArrayList;
+import java.text.NumberFormat;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 
 public class Chunk implements ICollideable, ICollisionPool {
     public static final int WIDTH=16;
@@ -26,12 +36,14 @@ public class Chunk implements ICollideable, ICollisionPool {
     public static final int LAYER_HEIGHT=16;
     private Layer[] layers = new Layer[HEIGHT/LAYER_HEIGHT];
     private short[] blocks = new short[WIDTH*HEIGHT*DEPTH];
-    private byte[] lightValue = new byte[WIDTH*HEIGHT*DEPTH];
+    private int[] lightValue = new int[WIDTH*HEIGHT*DEPTH];
+    private ArrayList<int[]> lightSources = new ArrayList<>();
+    private byte[] height = new byte[WIDTH*DEPTH];
     private boolean built=false;
-    private Chunk[] neightbours = new Chunk[4];
-    private int height=0;
+    private Chunk[] neightbours = new Chunk[Neighbour.values().length-2];
+    private int maxHeight=0;
     //old model if dirty = true, model needs to be remodeled...
-    private boolean dirty = true;
+    private boolean dirty = true, lightDirty = true;
     private boolean renderable = true;
     private int x,z;
     private AABB ab;
@@ -43,7 +55,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         this.x = x;
         this.z = z;
         this.chunkProvider = chunkProvider;
-        ab = new AABB(x*Chunk.WIDTH,0,z*Chunk.DEPTH,Chunk.WIDTH,0,Chunk.DEPTH);
+        ab = new AABB(x*Chunk.WIDTH,0,z*Chunk.DEPTH,Chunk.WIDTH,Chunk.HEIGHT,Chunk.DEPTH);
         for(int i = 0; i < layers.length; i++){
             layers[i] = new Layer(this,i*LAYER_HEIGHT,LAYER_HEIGHT);
         }
@@ -54,6 +66,14 @@ public class Chunk implements ICollideable, ICollisionPool {
 
     }
 
+    public int getHeight(int x,int z){
+        return height[x*DEPTH+z];
+    }
+
+    private void setHeight(int x,int z,int height){
+        this.height[x*DEPTH+z] = (byte)height;
+    }
+
     public Layer[] getLayers(){
         return layers;
     }
@@ -62,33 +82,230 @@ public class Chunk implements ICollideable, ICollisionPool {
         return built;
     }
 
+    private Object buildLock = new Object();
+
     public void generateBlocks(){
-        if(built) return;
+        synchronized (buildLock) {
+            if (built) return;
+            built = true;
+        }
+        lightSources.clear();
         for(int x = 0; x < WIDTH; x++){
             for(int z = 0; z < DEPTH; z++){
-                float noise = SimplexNoise.noise((getX()*Chunk.WIDTH+x)/180f,(getZ()*Chunk.DEPTH+z)/180f)*0.05f;
-                for(int y = 0; y < Chunk.HEIGHT; y++){
-                    short block = (120+(HEIGHT-120)*noise > y ? Block.GRASS : Block.AIR);
-                    if(y < 120 && block == Block.AIR) {
+                Biome biome = Biome.getBiome(this.x * WIDTH + x, this.z * DEPTH + z);
+                int height = biome.getHeight(this.x * WIDTH + x, this.z * DEPTH + z);
+                setHeight(x,z,height);
+                boolean isSky = true;
+                for(int y = Chunk.HEIGHT - 1; y >= 0; y--){
+                    short block = biome.getBlock(this.x * WIDTH + x, y, this.z * DEPTH + z, height);
+                    Block b = Block.getBlock(block);
+                    //float noise = tools.NoiseBuilder.noise((getX()*Chunk.WIDTH+x)/80f,(y*Chunk.WIDTH+y)/200f,(getZ()*Chunk.DEPTH+z)/80f)*1.05f;
+                    //short block = (120+(HEIGHT-120)*noise > y ? Block.GRASS : Block.AIR);
+                    //if (block == Block.AIR && y < Biome.WATER_LEVEL)
                         //block = Block.WATER;
+
+                    //if((120+(HEIGHT-120)*noise <= y)) {
+                        //block = Block.AIR;
+                   // }
+                    setLightValue(x,y,z,(byte)0);
+                    if (block == Block.AIR && isSky) {
+                        setLightSource(x,y,z,true);
+                        setLightValue(x, y, z, (byte) 15);
+                    } else {
+                        isSky = false;
                     }
-                    setBlock(x,y,z, block);
-                    setLightValue(x,y,z,block==Block.AIR ? (byte)15 : 0);
+
+                    if(b.isLightSource() && block != Block.AIR) {
+                        setLightSource(x,y,z,true);
+                        setLightValue(x,y,z,(byte)b.getEmissionStrength());
+                    }
+                    setBlock(x,y,z, block,false);
+                }
+                for (int y = Chunk.HEIGHT - 1; y >= 0; y--) {
+                    //biome.generateStructures(chunkProvider, getWorldPosition().x + x, y, getWorldPosition().y + z);
                 }
             }
         }
-        ab.resize(Chunk.WIDTH,height+1,Chunk.DEPTH);
+        ab.resize(Chunk.WIDTH,this.maxHeight+1,Chunk.DEPTH);
+    }
+
+    private void calculateLight() {
+        /*
+        int light = 15;
+        for (int x = 0; x < Chunk.WIDTH; x++) {
+            for (int z = 0; z < Chunk.DEPTH; z++) {
+                for (int y = Chunk.HEIGHT - 1; y >= 0; y--) {
+                    if (y == Chunk.HEIGHT - 1) {
+                        setLightValue(x, y, z, (byte) (Block.getBlock(getBlock(x, y, z)).getLightPenetration()));
+                    } else {
+                        setLightValue(x, y, z, (byte) Math.max(0,getLightValue(x, y + 1, z) - (15-Block.getBlock(getBlock(x, y, z)).getLightPenetration())));
+                    }
+                }
+            }
+        }
+         */
+    }
+
+    private boolean isOutside(int x,int y,int z) {
+        Vector2i pos = ChunkTools.toChunkPosition(x,z);
+        return false;
+    }
+
+    private Vector3i lightSrc = new Vector3i(0,0,0);
+    private void calcLight(int x,int y,int z, int str) {
+        if(str <= 0) {
+            return;
+        }
+        /*
+
+        int x = pos.x;
+        int z = pos.y;
+         */
+        Block left = Block.getBlock(getBlock(x-1,y,z));
+        Block right = Block.getBlock(getBlock(x+1,y,z));
+        Block front = Block.getBlock(getBlock(x,y,z+1));
+        Block back = Block.getBlock(getBlock(x,y,z-1));
+        Block top = Block.getBlock(getBlock(x,y+1,z));
+        Block bottom = Block.getBlock(getBlock(x,y-1,z));
+        int newStr = str-1;
+        if(newStr > getLightValue(x-1,y,z) && !left.isSolid()) {
+            setLightValue(x-1,y,z, newStr);
+            calcLight(x-1,y,z, newStr);
+        }
+        if(newStr > getLightValue(x+1,y,z) && !right.isSolid()) {
+            setLightValue(x+1,y,z, newStr);
+            calcLight(x+1,y,z, newStr);
+        }
+        if(newStr > getLightValue(x,y,z+1) && !front.isSolid()) {
+            setLightValue(x,y,z+1, newStr);
+            calcLight(x,y,z+1, newStr);
+        }
+        if(newStr > getLightValue(x,y,z-1) && !back.isSolid()) {
+            setLightValue(x,y,z-1, newStr);
+            calcLight(x,y,z-1, newStr);
+        }
+        if(newStr > getLightValue(x,y+1,z) && !top.isSolid()) {
+            setLightValue(x,y+1,z, newStr);
+            calcLight(x,y+1,z, newStr);
+        }
+        if(newStr > getLightValue(x,y-1,z) && !bottom.isSolid()) {
+            setLightValue(x,y-1,z, newStr);
+            calcLight(x,y-1,z, newStr);
+        }
+
+    }
+    private Object lightLock = new Object();
+    public void calculateLights() {
+        synchronized (lightLock) {
+            if(!lightDirty)
+                return;
+            lightDirty = false;
+            setLights(true);
+        }
+    }
+
+    //TODO: remove lights when all surrounding chunks has been built so that no unecessary lights exist.
+    private void setLights(boolean rebuild) {
+        if(rebuild) {
+            for (int x = 0; x < WIDTH; x++) {
+                for (int z = 0; z < DEPTH; z++) {
+                    for (int y = 0; y < HEIGHT; y++) {
+                        setLightValue(x, y, z,0);
+                    }
+                }
+            }
+        }
+        for(int x = 0; x < WIDTH; x++) {
+            for (int z = 0; z < DEPTH; z++) {
+                for (int y = 0; y < HEIGHT; y++) {
+                    if(isLightSource(x-1,y,z) &&
+                            isLightSource(x+1,y,z) &&
+                            isLightSource(x,y+1,z) &&
+                            isLightSource(x,y-1,z) &&
+                            isLightSource(x,y,z-1) &&
+                            isLightSource(x,y,z+1) &&
+                            isLightSource(x,y,z)) {
+
+                    } else if(isLightSource(x,y,z)) {
+                        int str = Block.getBlock(getBlock(x,y,z)).getEmissionStrength();
+                        setLightValue(x,y,z,Block.getBlock(getBlock(x,y,z)).getEmissionStrength());
+                        calcLight(x,y,z,str);
+                    }
+                    /*
+                    setLightValue(x,y,z,(byte)0);
+                    short block = getBlock(x,y,z);
+                    Block b = Block.getBlock(block);
+
+                    if (block == Block.AIR && isSky) {
+                        lightSources.add(new int[]{x, y,z});
+                        setLightSource(x,y,z);
+                    } else {
+                        isSky = false;
+                    }
+
+
+                    if (isSky && block == Block.AIR) {
+                        setLightValue(x, y, z, (byte) 15);
+                    }
+                    else if(b.isLightSource() && block != Block.AIR) {
+                        System.out.println("adding torch!!: " + block);
+                        lightSources.add(new int[]{x, y,z});
+                        setLightSource(x,y,z);
+                        setLightValue(x,y,z,(byte)b.getEmissionStrength());
+                    }
+
+                     */
+
+                }
+            }
+        }
     }
 
     public Layer getLayer(int y){
         return layers[y/LAYER_HEIGHT];
     }
 
-    public void setLightValue(int x,int y, int z,byte value) {
-        this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] = value;
+    public void setLightValue(int x,int y, int z,int value) {
+
+        Chunk n;
+
+        if(y < 0 || y >= Chunk.HEIGHT) {
+            return;
+        }
+        if((x < 0 && (n=getNeighbour(Neighbour.LEFT)) != null )|| (x >= Chunk.WIDTH && (n=getNeighbour(Neighbour.RIGHT)) != null)) {
+            n.setLightValue(ChunkTools.toBlockPosition(x), y, z, value);
+        }
+        else if((z < 0 && (n=getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=getNeighbour(Neighbour.BACK)) != null)) {
+            n.setLightValue(x, y, ChunkTools.toBlockPosition(z), value);
+        } else {
+            int curValue = this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z];
+            this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] = curValue & ~0XF | value;
+            DirtyLayerProvider.addLayer(getLayer(y));
+        }
     }
 
-    public byte getLightValue(int x,int y, int z) {
+    private void setLightSource(int x,int y,int z, boolean isLight) {
+        int curValue = this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z];
+        if(isLight) {
+            this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] = curValue | 0X10;
+        } else {
+            this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] = curValue & ~0X10;
+        }
+    }
+
+    private boolean isLightSource(int x,int y,int z) {
+        Chunk n;
+
+        if((x < 0 && (n=getNeighbour(Neighbour.LEFT)) != null )|| (x >= Chunk.WIDTH && (n=getNeighbour(Neighbour.RIGHT)) != null))
+            return n.isLightSource(ChunkTools.toBlockPosition(x),y,z);
+        if((z < 0 && (n=getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=getNeighbour(Neighbour.BACK)) != null))
+            return n.isLightSource(x,y,ChunkTools.toBlockPosition(z));
+        if(y >= Chunk.HEIGHT || y < 0) return true;
+        //System.out.println((this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] & 0X10));
+        return (this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] & 0X10) == 0X10;
+    }
+
+    public int getLightValue(int x,int y, int z) {
         Chunk n;
 
         if((x < 0 && (n=getNeighbour(Neighbour.LEFT)) != null )|| (x >= Chunk.WIDTH && (n=getNeighbour(Neighbour.RIGHT)) != null))
@@ -96,20 +313,29 @@ public class Chunk implements ICollideable, ICollisionPool {
         if((z < 0 && (n=getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=getNeighbour(Neighbour.BACK)) != null))
             return n.getLightValue(x,y,ChunkTools.toBlockPosition(z));
 
-        if(isOutsideY(y)) return (byte)15;
+        if(isOutsideY(y)) return 15;
 
         if(x < 0 || z >= Chunk.DEPTH || z < 0 || x >= Chunk.WIDTH)
-            return (byte)15;
-        return this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z];
+            return 15;
+        return this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] & 0xF;
     }
 
-
+    private static RoffColor c = RoffColor.from(Color.RED);
+    private static RoffColor c2 = RoffColor.from(Color.ORANGE);
     public void render(Renderer renderer){
+        /*
+        if(!isBuilt()) {
+        AABBRenderer.setColor(c);
+        AABBRenderer.render(renderer, this.ab);
+        } else {
+            AABBRenderer.setColor(c2);
+            AABBRenderer.render(renderer, this.ab);
+        }
+         */
         if(!renderable) return;
         //AABBRenderer.setColor(col);
-        //AABBRenderer.render(renderer,this.ab);
         material.setAlbedoTexture(Block.texture);
-        for(int i = 0; i < layers.length; i++){
+        for (int i = 0; i < layers.length; i++) {
             layers[i].render(renderer);
         }
     }
@@ -140,7 +366,6 @@ public class Chunk implements ICollideable, ICollisionPool {
         }
     }
 
-
     public void onChunkBuild(){
         Chunk c;
         built = true;
@@ -149,6 +374,10 @@ public class Chunk implements ICollideable, ICollisionPool {
         if((c=getNeighbour(Neighbour.LEFT)) != null) c.onNeighbourIsBuilt(Neighbour.RIGHT); else someNull = true;
         if((c=getNeighbour(Neighbour.FRONT)) != null) c.onNeighbourIsBuilt(Neighbour.BACK); else someNull = true;
         if((c=getNeighbour(Neighbour.BACK)) != null) c.onNeighbourIsBuilt(Neighbour.FRONT); else someNull = true;
+        if((c=getNeighbour(Neighbour.RIGHT_BACK)) != null) c.onNeighbourIsBuilt(Neighbour.LEFT_FRONT); else someNull = true;
+        if((c=getNeighbour(Neighbour.RIGHT_FRONT)) != null) c.onNeighbourIsBuilt(Neighbour.LEFT_BACK); else someNull = true;
+        if((c=getNeighbour(Neighbour.LEFT_FRONT)) != null) c.onNeighbourIsBuilt(Neighbour.RIGHT_BACK); else someNull = true;
+        if((c=getNeighbour(Neighbour.LEFT_BACK)) != null) c.onNeighbourIsBuilt(Neighbour.RIGHT_FRONT); else someNull = true;
         if(someNull) return;
         shouldGenerateModel();
     }
@@ -160,6 +389,12 @@ public class Chunk implements ICollideable, ICollisionPool {
         if((c=getNeighbour(Neighbour.LEFT)) == null || !c.isBuilt()) return false;
         if((c=getNeighbour(Neighbour.FRONT)) == null || !c.isBuilt()) return false;
         if((c=getNeighbour(Neighbour.BACK)) == null || !c.isBuilt()) return false;
+
+        if((c=getNeighbour(Neighbour.RIGHT_BACK)) == null || !c.isBuilt()) return false;
+        if((c=getNeighbour(Neighbour.LEFT_BACK)) == null || !c.isBuilt()) return false;
+        if((c=getNeighbour(Neighbour.RIGHT_FRONT)) == null || !c.isBuilt()) return false;
+        if((c=getNeighbour(Neighbour.LEFT_FRONT)) == null || !c.isBuilt()) return false;
+
         return true;
     }
 
@@ -170,19 +405,54 @@ public class Chunk implements ICollideable, ICollisionPool {
         return neightbours[neighbour.ordinal()];
     }
 
-    public void setBlock(int x,int y,int z, short block){
-        if(y > height && Block.getBlock(block).isRenderable()){
-            height = y;
-            ab.resize(Chunk.WIDTH,height,Chunk.DEPTH);
+    private void setBlock(int x,int y,int z, short block,boolean built) {
+        if(y > maxHeight && Block.getBlock(block).isRenderable()){
+            maxHeight = y;
+            ab.resize(Chunk.WIDTH,maxHeight,Chunk.DEPTH);
+        } else if(y == maxHeight && !Block.getBlock(block).isRenderable()) {
+            maxHeight = y;
+            setHeight(x,z,y);
         }
 
         dirty = true;
+        lightDirty = true;
         if(!built)
             getLayer(y).onBlockSet(x, y, z, block);
-        else
-            getLayer(y).onNewBlockSet(x,y,z,block);
+        else {
+            if(block == Block.AIR && getBlock(x,y+1,z) == Block.AIR && isLightSource(x,y+1,z)) {
+                System.out.println("above was a sky light!!dwwawds ");
+                setLightSource(x,y,z,true);
+                skyLightRecurse(x,y-1,z,true);
+            }
+            else if(!Block.getBlock(block).isLightSource()) {
+                System.out.println("n ot light source!!");
+                if(getBlock(x,y,z) == Block.AIR && isLightSource(x,y,z)) {
+                    skyLightRecurse(x,y-1,z,false);
+                }
+                setLightSource(x,y,z,false);
+            } else {
+                System.out.println("is light source!!!!!");
+                setLightSource(x,y,z,true);
+            }
+            getLayer(y).onNewBlockSet(x, y, z, block);
+        }
 
         this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
+    }
+
+    private void skyLightRecurse(int x,int y,int z, boolean isLight) {
+        if(y == 0) {
+            return;
+        }
+        short block = getBlock(x,y,z);
+        if((isLight || isLightSource(x,y,z)) && block == Block.AIR) {
+            setLightSource(x,y,z,isLight);
+            skyLightRecurse(x,y-1,z,isLight);
+        }
+    }
+
+    public void setBlock(int x,int y,int z, short block){
+        setBlock(x,y,z,block,built);
     }
 
     public short getBlock(int x,int y,int z){
@@ -211,6 +481,10 @@ public class Chunk implements ICollideable, ICollisionPool {
         if((c=getNeighbour(Neighbour.LEFT)) != null) c.onNeighbourDestroy(Neighbour.RIGHT);
         if((c=getNeighbour(Neighbour.FRONT)) != null) c.onNeighbourDestroy(Neighbour.BACK);
         if((c=getNeighbour(Neighbour.BACK)) != null) c.onNeighbourDestroy(Neighbour.FRONT);
+        if((c=getNeighbour(Neighbour.LEFT_FRONT)) != null) c.onNeighbourDestroy(Neighbour.RIGHT_BACK);
+        if((c=getNeighbour(Neighbour.LEFT_BACK)) != null) c.onNeighbourDestroy(Neighbour.RIGHT_FRONT);
+        if((c=getNeighbour(Neighbour.RIGHT_FRONT)) != null) c.onNeighbourDestroy(Neighbour.LEFT_BACK);
+        if((c=getNeighbour(Neighbour.RIGHT_BACK)) != null) c.onNeighbourDestroy(Neighbour.LEFT_FRONT);
     }
 
     private boolean isOutsideY(int y){return y < 0 || y >= HEIGHT; }
@@ -249,7 +523,11 @@ public class Chunk implements ICollideable, ICollisionPool {
         return getNeighbour(Neighbour.LEFT) != null &&
                 getNeighbour(Neighbour.RIGHT) != null &&
                 getNeighbour(Neighbour.FRONT) != null &&
-                getNeighbour(Neighbour.BACK) != null;
+                getNeighbour(Neighbour.BACK) != null &&
+                getNeighbour(Neighbour.LEFT_FRONT) != null &&
+                getNeighbour(Neighbour.LEFT_BACK) != null &&
+                getNeighbour(Neighbour.RIGHT_FRONT) != null &&
+                getNeighbour(Neighbour.RIGHT_BACK) != null;
     }
 
     public void rebuild() {
@@ -305,9 +583,11 @@ public class Chunk implements ICollideable, ICollisionPool {
 
     private ArrayList<WorldBlock> collisionResult = new ArrayList<>();
     private Vector3i colBlockSize = new Vector3i(),colBlockPos = new Vector3i();
-    private List<WorldBlock> getCollidingBlocks(AABB ab, Vector3f offset) {
+    private Vector2i cPos = new Vector2i(0,0);
+    private Vector3i colBlockPos3 = new Vector3i(0,0,0);
+    private List<WorldBlock> getCollidingBlocks(AABB ab, Vector3d offset) {
         collisionResult.clear();
-        Vector3f pos = ab.getPosition();
+        Vector3d pos = ab.getPosition();
 
         colBlockPos.set((int)Math.floor(pos.x + (offset.x < 0 ? offset.x : 0)),(int)Math.floor(pos.y + (offset.y < 0 ? offset.y : 0)),(int)Math.floor(pos.z + (offset.z < 0 ? offset.z : 0)));
         colBlockSize.set((int)Math.floor(pos.x + ab.getWidth() + (offset.x > 0 ? offset.x : 0))+1,(int)Math.floor(pos.y + ab.getHeight() + (offset.y > 0 ? offset.y : 0))+1,(int)Math.floor(pos.z + ab.getDepth() + (offset.z > 0 ? offset.z : 0))+1);
@@ -316,67 +596,86 @@ public class Chunk implements ICollideable, ICollisionPool {
             for (int y = colBlockPos.y; y < colBlockSize.y; ++y) {
                 for (int z = colBlockPos.z; z < colBlockSize.z; ++z) {
                     Block b;
-                    Chunk c = chunkProvider.getChunk(ChunkTools.toChunkPosition(x,z));
-                    Vector3i blockPos = ChunkTools.toBlockPosition(x,y,z);
-                    if ((b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z))).isSolid())
+                    Chunk c = chunkProvider.getChunk(ChunkTools.toChunkPosition(x,z,cPos));
+                    //System.out.println("CHUNK: " + ChunkTools.toChunkPosition(x,z) + " | " + x + " | " + z);
+                    Vector3i blockPos = ChunkTools.toBlockPosition(x,y,z,colBlockPos3);
+                    if (c != null && (b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z))).isSolid())
                         collisionResult.add(new WorldBlock(x,y,z,b.getId()));
                 }
             }
         }
         return collisionResult;
     }
-    private static Vector3f offset = new Vector3f(0,0,0);
+    private static Vector3d offset = new Vector3d(0,0,0);
+    private static Vector3d orgStep = new Vector3d(0,0,0);
+    private static Vector3d stepMoved = new Vector3d(0,0,0);
     @Override
     public void executeCollisions() {
         physicsEntities.forEach((e)-> {
-            Vector3f step = e.getVelocity().getVelocity();
-            //System.out.println(step.y);
+            Vector3d step = e.getVelocity().getVelocity();
+            //System.out.println("STEP: " + step.y + " | " + e.getTransform().getPosition().y + " | " + Thread.currentThread().getName());
+            orgStep.set(step);
             if(e.getCollider().getType() != ICollider.Type.AABB) return;
             offset.set(step.x,step.y,step.z);
             List<WorldBlock> blocks = getCollidingBlocks((AABB)e.getCollider(), offset);
-            //System.out.println(blocks.size() + " | " + step.y);
             AABB ab = (AABB)e.getCollider();
             e.setGrounded(false);
             if(blocks.size() == 0) return;
-            //y collision
-            blocks.forEach((b) ->
-            {
-                offset.y = b.getBoundingBox().yClipping(ab, offset.y);
+
+            //corner collision
+            blocks.forEach((b) -> {
+                offset.x = b.getBoundingBox().xClipping(ab, offset.x, false);
+                offset.z = b.getBoundingBox().zClipping(ab, offset.z, false);
             });
-            if (offset.y != step.y) {
+
+            //if is in corner!! push out depending opn what axis is the shortest.
+            if (orgStep.x != offset.x && orgStep.z != offset.z) {
+                if (Math.abs(offset.x) < Math.abs(offset.z)) {
+                    e.getTransform().translate(offset.x, 0, 0);
+                    e.getVelocity().clear(Axis.X);
+                } else if (Math.abs(offset.x) > Math.abs(offset.z)) {
+                    e.getTransform().translate(0, 0, offset.z);
+                    e.getVelocity().clear(Axis.Z);
+                } else {
+                    e.getTransform().translate(offset.x, 0, offset.z);
+                    e.getVelocity().clear(Axis.X);
+                    e.getVelocity().clear(Axis.Z);
+                }
+            }
+            offset.set(orgStep);
+
+            //y collision
+            blocks.forEach((b) -> {
+                offset.y = b.getBoundingBox().yClipping(ab, offset.y, false);
+            }
+            );
+            if (offset.y != orgStep.y) {
                 e.getTransform().translate(0, offset.y, 0);
+                e.getVelocity().clear(Axis.Y);
 
             }
 
             //x collision
             blocks.forEach((b) ->
-            {
-
-                offset.x = b.getBoundingBox().xClipping(ab, offset.x);
-            });
-            if (offset.x != step.x) {
+                offset.x = b.getBoundingBox().xClipping(ab, offset.x,true)
+            );
+            if (offset.x != orgStep.x) {
                 e.getVelocity().clear(Axis.X);
                 e.getTransform().translate(offset.x, 0, 0);
             }
 
             //z collision
             blocks.forEach((b) ->
-            {
-                offset.z = b.getBoundingBox().zClipping(ab, offset.z);
-            });
-            if (offset.z != step.z) {
-                e.getTransform().translate(0, 0, offset.z);
+                offset.z = b.getBoundingBox().zClipping(ab, offset.z,true)
+            );
+            if (offset.z != orgStep.z) {
                 e.getVelocity().clear(Axis.Z);
+                e.getTransform().translate(0, 0, offset.z);
             }
 
-            e.setGrounded(step.y != offset.y && step.y < 0);
-
-            if(step.y != offset.y) {
-                e.getVelocity().clear(Axis.Y);
-            }
+            e.setGrounded(orgStep.y != offset.y && orgStep.y < 0);
 
 
         });
     }
-
 }

@@ -4,6 +4,7 @@ import chunk.Chunk;
 import chunk.Layer;
 import engine.camera.Camera;
 import org.joml.Vector2f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.Comparator;
@@ -25,7 +26,7 @@ public class ChunkComparator implements Comparator<Layer> {
         }
         w1.set(c1.getWorldPosition());
         w2.set(c2.getWorldPosition());
-        Vector3f position = follow.getTransform().getPosition();
+        Vector3d position = follow.getPosition();
         boolean c1inFrustum = c1.getCollider().testFrustum(follow.getFrustum());
         boolean c2inFrustum = c2.getCollider().testFrustum(follow.getFrustum());
         if(c1inFrustum && !c2inFrustum) return -1;

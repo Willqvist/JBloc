@@ -36,6 +36,11 @@ public class BasicBlock extends Block {
     }
 
     @Override
+    public int getEmissionStrength() {
+        return 0;
+    }
+
+    @Override
     public int getLightPenetration() {
         return lightPen;
     }

@@ -1,5 +1,7 @@
 package entities;
 
+import biome.Biome;
+import biome.BiomeHandler;
 import blocks.Block;
 import chunk.Chunk;
 import chunk.ChunkTools;
@@ -14,10 +16,7 @@ import engine.physics.Force;
 import engine.physics.Physics;
 import engine.render.AABBRenderer;
 import engine.render.Renderer;
-import org.joml.Vector2f;
-import org.joml.Vector2i;
-import org.joml.Vector3f;
-import org.joml.Vector3i;
+import org.joml.*;
 import org.lwjgl.glfw.GLFW;
 import tools.RayTracer;
 import world.World;
@@ -34,18 +33,19 @@ public class Player extends PhysicsEntity {
     public Player(World world) {
         super(world);
         camera = (Camera3D)Engine.camera.getCamera("main");
-        speed = 32.92f;
+        speed = 0.12f;
         ((AABB)getCollider()).resize(0.8f,1.8f,0.8f);
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(0,450,0);
+        getTransform().setPosition(4000000,250,400000);
+        //System.out.println((int)Float.MAX_VALUE);
         camera.update();
     }
 
+
     @Override
     protected void onUpdate() {
-
         if(Engine.key.isKeyPressed(GLFW.GLFW_KEY_ESCAPE)){
             Engine.window.unlockMouse();
         }
@@ -54,20 +54,20 @@ public class Player extends PhysicsEntity {
         }
 
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_W)){
-            Vector3f dir = camera.getDirection(Camera.Direction.FORWARD);
+            Vector3d dir = camera.getDirection(Camera.Direction.FORWARD);
             move(dir.x,0,dir.y);
         }
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_S)){
-            Vector3f dir = camera.getDirection(Camera.Direction.BACKWARD);
+            Vector3d dir = camera.getDirection(Camera.Direction.BACKWARD);
             move(dir.x,0,dir.y);
         }
 
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_A)){
-            Vector3f dir = camera.getDirection(Camera.Direction.LEFT);
+            Vector3d dir = camera.getDirection(Camera.Direction.LEFT);
             move(dir.x,0,dir.y);
         }
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_D)){
-            Vector3f dir = camera.getDirection(Camera.Direction.RIGHT);
+            Vector3d dir = camera.getDirection(Camera.Direction.RIGHT);
             move(dir.x,0,dir.y);
         }
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_SPACE) && isGrounded() && tick-jumpTick > 10){
@@ -77,7 +77,10 @@ public class Player extends PhysicsEntity {
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT)){
             move(0,-1.2f,0, Force.ADD);
         }
-        getVelocity().clear(Axis.Y);
+        //System.out.println(Biome.getBiome((int)getTransform().getPosition().x,(int)getTransform().getPosition().z).getName());
+        //if(chunk == null || !chunk.isBuilt())
+            //getVelocity().clear(Axis.Y);
+
         boolean movedMouse = CameraMath.followMouse(camera,Engine.mouse,.002f,0.4f);
         if(movedMouse || moved || !this.velocity.isZero()){
             camera.update();
@@ -88,9 +91,8 @@ public class Player extends PhysicsEntity {
         }
 
         if(Engine.mouse.isRightPressed()) {
-            rayPlaceBlock(Block.GRASS);
+            rayPlaceBlock(Block.TORCH);
         }
-
 
         if(chunk == null) {
             getVelocity().clear(Axis.Y);
@@ -154,13 +156,13 @@ public class Player extends PhysicsEntity {
         }
 
     }
-
+    private Vector3i traceResultSrc = new Vector3i(0,0,0);
     private RayTracer.TraceResult traceBlock() {
         pickedChunk = null;
         return trace((pos) -> {
             Chunk c = world.getChunk(ChunkTools.toChunkPosition(pos.x,pos.z));
             if(c==null) return false;
-            Vector3i blockPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z);
+            Vector3i blockPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z,traceResultSrc);
             Block b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z));
             if(b.isSolid()) {
                 pickedBlockPosition.set(pos);

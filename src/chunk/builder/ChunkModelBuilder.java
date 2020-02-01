@@ -8,6 +8,8 @@ import engine.model.CustomModelAttribute;
 import engine.model.Model;
 import engine.model.ModelAttribute;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,6 +19,7 @@ public class ChunkModelBuilder {
     protected static Camera follow;
     private static ChunkBuilderThread[] builderThreads;
     private static TreeSet<Layer> layers = new TreeSet<>(new ChunkComparator());
+    private static HashSet<Chunk> chunks = new HashSet<>();
     private static LayerBuilder layerModelBuilder = new LayerBuilder();
     private static ReentrantLock lock = new ReentrantLock();
     private static Condition cond = lock.newCondition();
@@ -42,6 +45,7 @@ public class ChunkModelBuilder {
     }
 
     public static synchronized void addChunk(Chunk c) {
+        chunks.add(c);
         Layer[] layers = c.getLayers();
         for(int i = 0; i < layers.length; i++ ){
             if(c.getX() == -5 && c.getZ() == -20) {
@@ -55,6 +59,7 @@ public class ChunkModelBuilder {
     }
 
     public static synchronized void addLayer(Layer layer) {
+        chunks.add(layer.getChunk());
         layers.add(layer);
         lock.lock();
         cond.signal();
@@ -87,9 +92,13 @@ public class ChunkModelBuilder {
         return !running;
     }
 
+    private static void removeChunk(Chunk c) {
+        chunks.remove(c);
+    }
+
     private static class ChunkBuilderThread extends Thread {
 
-        private static final int NUM_BUILDERS = 30;
+        private static final int NUM_BUILDERS = 20;
         private LayerModelBuilder[] builders = new LayerModelBuilder[NUM_BUILDERS];
         private volatile boolean running = true;
         //private List<LayerModelBuilder> layerModelBuilders = new ArrayList<>();
@@ -127,6 +136,9 @@ public class ChunkModelBuilder {
                         builder.setOccupied(false);
                         continue;
                     }
+                    long a = System.nanoTime();
+                    layer.getChunk().calculateLights();
+                    a = System.nanoTime();
                     layerModelBuilder.buildLayer(layer, builder);
                     Engine.invokeLater(() -> {
                         Model m = builder.getOpaqueModelBuilder().build(attributes);
@@ -135,7 +147,7 @@ public class ChunkModelBuilder {
                             //System.out.println("error chunk layer building: " + layer.getY() + " | " + m);
                         }
                         layer.setModel(m);
-                        //layer.setTransparentModel(builder.getTransparentModelBuilder().build(attributes));
+                        layer.setTransparentModel(builder.getTransparentModelBuilder().build(attributes));
                         builder.getOpaqueModelBuilder().clear();
                         builder.getTransparentModelBuilder().clear();
                         builder.setOccupied(false);

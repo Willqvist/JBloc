@@ -1,4 +1,4 @@
-#version 150 core
+#version 460 core
 out vec4 fragPosition;
 in vec2 t_uv;
 in vec3 t_normal;

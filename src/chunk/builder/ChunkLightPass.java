@@ -3,35 +3,33 @@ package chunk.builder;
 import chunk.Chunk;
 import chunk.ChunkTools;
 import engine.Engine;
+import engine.storage.BiStorage;
 import org.joml.Vector2f;
 import org.joml.Vector2i;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 
-import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ChunkBlockBuilder {
+public class ChunkLightPass {
     private static Thread[] threads;
-    private static ArrayList<Chunk> chunks = new ArrayList<>();
+    private static ArrayList<BiStorage<Chunk,Runnable>> chunks = new ArrayList<>();
     private static boolean running = true;
     private static ReentrantLock lock = new ReentrantLock();
     private static Condition cond = lock.newCondition();
 
     public static void init(int numThreads){
         threads = new Thread[numThreads];
-        Engine.window.onExit(ChunkBlockBuilder::onExit);
         for(int i = 0; i < numThreads; i++){
-            threads[i] = new ChunkBlockBuilderThread();
+            threads[i] = new ChunkLightPass.ChunkLightPassThread();
             threads[i].start();
         }
 
     }
-    public static synchronized void addChunk(Chunk chunk){
-        chunks.add(chunk);
+    public static synchronized void addChunk(Chunk chunk, Runnable callback){
+        chunks.add(new BiStorage<>(chunk,callback));
         lock.lock();
         cond.signalAll();
         lock.unlock();
@@ -67,21 +65,21 @@ public class ChunkBlockBuilder {
             }
         }
     }
-    private static ChunkComparator comp = new ChunkComparator();
-    private static synchronized Chunk pollFirst() {
-        Chunk c = findNearestChunk();
+    private static ChunkBlockBuilder.ChunkComparator comp = new ChunkBlockBuilder.ChunkComparator();
+    private static synchronized BiStorage<Chunk,Runnable> pollFirst() {
+        BiStorage<Chunk,Runnable> c = findNearestChunk();
         chunks.remove(c);
         return c;
     }
 
-    private static synchronized Chunk findNearestChunk() {
+    private static synchronized BiStorage<Chunk,Runnable> findNearestChunk() {
         if(chunks.size() <= 0) {
             return null;
         }
-        Chunk c = chunks.get(0);
+        BiStorage<Chunk,Runnable> c = chunks.get(0);
         for(int i = 1; i < chunks.size(); i++) {
-            Chunk c2 = chunks.get(i);
-            if(comp.compare(c,c2) == -1) {
+            BiStorage<Chunk,Runnable> c2 = chunks.get(i);
+            if(comp.compare(c.getFirst(),c2.getFirst()) == -1) {
             } else {
                 c = c2;
             }
@@ -89,22 +87,22 @@ public class ChunkBlockBuilder {
         return c;
     }
 
-    static class ChunkComparator implements Comparator<Chunk>{
+    static class ChunkComparator implements Comparator<Chunk> {
         private Vector2f w1=new Vector2f(),w2=new Vector2f();
         private Vector2i w1Cp = new Vector2i();
-        private static Vector2i src = new Vector2i();
+
         @Override
         public int compare(Chunk c1, Chunk c2) {
             w1.set(c1.getWorldPosition());
             w2.set(c2.getWorldPosition());
-            w1Cp.set(ChunkTools.toChunkPosition(w1.x,w1.y,src));
+            w1Cp.set(ChunkTools.toChunkPosition(w1.x,w1.y));
             Vector3d position = ChunkModelBuilder.follow.getPosition();
-            if(w1Cp.equals(ChunkTools.toChunkPosition(position.x,position.z,src))) {
+            if(w1Cp.equals(ChunkTools.toChunkPosition(position.x,position.z))) {
                 return -1;
             }
 
             w1Cp.set(ChunkTools.toChunkPosition(w2.x,w2.y));
-            if(w1Cp.equals(ChunkTools.toChunkPosition(position.x,position.z,src))) {
+            if(w1Cp.equals(ChunkTools.toChunkPosition(position.x,position.z))) {
                 return 1;
             }
             boolean c1inFrustum = c1.getCollider().testFrustum(ChunkModelBuilder.follow.getFrustum());
@@ -115,21 +113,20 @@ public class ChunkBlockBuilder {
         }
     }
 
-    private static class ChunkBlockBuilderThread extends Thread {
+    private static class ChunkLightPassThread extends Thread {
         @Override
         public void run() {
             while(running) {
                 if(!isEmpty()) {
-                    Chunk c = pollFirst();
+                    BiStorage<Chunk,Runnable> c = pollFirst();
                     if(c != null) {
-                        c.generateBlocks();
-                        Engine.invokeLater(() -> {
-                            c.onChunkBuild();
+                        //c.getFirst().calculateLights();
+                        Engine.invokeLater(()-> {
+                            c.getLast().run();
                         });
                     }
                 }
             }
         }
     }
-
 }

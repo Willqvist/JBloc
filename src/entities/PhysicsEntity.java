@@ -8,6 +8,7 @@ import engine.physics.*;
 import engine.render.Material;
 import engine.render.Renderer;
 import org.joml.Vector2i;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 import world.World;
 
@@ -21,6 +22,7 @@ public abstract class PhysicsEntity extends Entity implements IPhysicsBody {
     protected Chunk chunk;
     private int oldX,oldZ;
     private boolean grounded = false;
+    private static Vector2i chunkPos = new Vector2i(0,0);
     public PhysicsEntity(World world,Model model) {
         super(world,model);
         init();
@@ -41,7 +43,7 @@ public abstract class PhysicsEntity extends Entity implements IPhysicsBody {
     }
 
     private void init(){
-        Vector3f pos = getTransform().getPosition();
+        Vector3d pos = getTransform().getPosition();
         collider = new AABB(this.getTransform(),1,1,1);
         Vector2i p = ChunkTools.toChunkPosition((int)pos.x,(int)pos.z);
         this.chunk = world.getChunk(ChunkTools.toChunkPosition((int)pos.x,(int)pos.z));
@@ -53,8 +55,8 @@ public abstract class PhysicsEntity extends Entity implements IPhysicsBody {
     public final void update() {
         moved = false;
         onUpdate();
-        Vector3f pos = getTransform().getPosition();
-        Vector2i cpos = ChunkTools.toChunkPosition(pos.x,pos.z);
+        Vector3d pos = getTransform().getPosition();
+        Vector2i cpos = ChunkTools.toChunkPosition(pos.x,pos.z,chunkPos);
         if(oldX != pos.y || oldZ != pos.x) {
             if(chunk != null)
                 chunk.removeEntity(this);
@@ -90,7 +92,7 @@ public abstract class PhysicsEntity extends Entity implements IPhysicsBody {
 
     @Override
     public float weight() {
-        return 6;
+        return 12;
     }
 
     @Override
@@ -118,12 +120,12 @@ public abstract class PhysicsEntity extends Entity implements IPhysicsBody {
     }
 
 
-    private Vector3f dir = new Vector3f();
-    protected void move(float x,float y,float z) {
+    private Vector3d dir = new Vector3d();
+    protected void move(double x,double y,double z) {
         move(x,y,z,Force.ADD);
     }
 
-    protected void move(float x,float y,float z, Force force) {
+    protected void move(double x,double y,double z, Force force) {
         moved = true;
         this.getVelocity().addForce(speed*friction()*Physics.AIR_DRAG,dir.set(x,y,z),force);
     }

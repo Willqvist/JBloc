@@ -12,6 +12,7 @@ import engine.model.ModelAttribute;
 import engine.model.ModelBuilder;
 import engine.texture.TextureCoordinate;
 import org.joml.Vector2f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -266,19 +267,6 @@ public class ChunkModelBuilderOld implements Runnable{
             }
             builder.addFloat(((float)getMinLightValue(c,face,vertices,i,x,yReal,z))/15f);
             ti += 2;
-            /*
-            builder.addFloats(
-                            //vertices
-                     vertices[i]+x,
-                            vertices[i+1]+y,
-                            vertices[i+2]+z
-                            //normals
-                            //vertices[i+3],
-                            //vertices[i+4],
-                            //vertices[i+5]
-            );
-
-             */
         }
     }
     private float[] getFace(int x,int y,int z,int width,int height,int depth){
@@ -456,7 +444,7 @@ public class ChunkModelBuilderOld implements Runnable{
             }
             w1.set(c1.getWorldPosition());
             w2.set(c2.getWorldPosition());
-            Vector3f position = follow.getTransform().getPosition();
+            Vector3d position = follow.getTransform().getPosition();
             boolean c1inFrustum = c1.getCollider().testFrustum(follow.getFrustum());
             boolean c2inFrustum = c2.getCollider().testFrustum(follow.getFrustum());
             if(c1inFrustum && !c2inFrustum) return -1;

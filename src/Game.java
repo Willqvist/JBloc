@@ -6,6 +6,7 @@ import engine.camera.Camera3D;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
 import engine.render.Renderer;
+import engine.tools.MatrixTools;
 import engine.ui.FontProvider;
 import engine.ui.font.Hiero;
 import engine.ui.font.HieroFontParser;
@@ -19,17 +20,18 @@ public class Game implements Application {
     @Override
     public void init() {
         Block.init();
-        Hiero font = HieroFontParser.getInstance().parse("/res/fonts/mc.fnt");
+       // Hiero font = HieroFontParser.getInstance().parse("/res/fonts/mc.fnt");
 
-        FontProvider.getProvider().addFont("mc",font);
+        //FontProvider.getProvider().addFont("mc",font);
 
         StandardMaterial chunkMaterial = new StandardMaterial();
         chunkMaterial.setShader(new ChunkShader());
         MaterialBank.addMaterial("chunk",chunkMaterial);
-        camera = new Camera3D(70,Engine.window.getWidth(),Engine.window.getHeight(),.01f,1000f);
+        camera = new Camera3D(60,Engine.window.getWidth(),Engine.window.getHeight(),.1f,900f);
         Engine.camera.addCamera("main",camera);
         Engine.window.lockMouse();
         this.world = new World();
+        MatrixTools.setOrigin(camera);
 
         Engine.window.onResize((w,h)->{
             camera.setViewport(w,h);
@@ -48,6 +50,9 @@ public class Game implements Application {
         renderer.setRenderMode(Renderer.RenderMode.QUADS);
         renderer.begin(camera);
         world.render(renderer);
+        Engine.window.enableDoubleSideRender(true);
+        world.renderTransparency(renderer);
+        Engine.window.enableDoubleSideRender(false);
         //renderer.render(instance);
     }
 

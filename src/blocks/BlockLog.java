@@ -1,14 +1,14 @@
 package blocks;
 
-import engine.physics.AABB;
 import engine.texture.TextureCoordinate;
 
-public class GrassBlock extends Block {
+public class BlockLog extends Block {
     private TextureCoordinate top = TextureCoordinate.from(1,9, texture);
     private TextureCoordinate bottom = TextureCoordinate.from(2,0, texture);
-    private TextureCoordinate side = TextureCoordinate.from(3,0, texture);
-    public GrassBlock() {
-        super(GRASS);
+    private TextureCoordinate side;
+    public BlockLog(short id, TextureCoordinate side) {
+        super(id);
+        this.side = side;
     }
 
 
