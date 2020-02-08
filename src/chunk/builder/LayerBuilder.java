@@ -70,7 +70,17 @@ public class LayerBuilder {
 
     private byte getMinLightValue(Chunk c,BlockFace face,float side[],int i, int x,int y,int z){
         byte min = 0;
-
+        if(false) {
+            if(face == BlockFace.TOP || face == BlockFace.BOTTOM) {
+               return (byte)c.getLightValue(x,y+((face==BlockFace.TOP) ? 1 : -1),z);
+            }
+            if(face == BlockFace.LEFT || face == BlockFace.RIGHT) {
+                return (byte)c.getLightValue(x+((face==BlockFace.LEFT) ? -1 : 1),y,z);
+            }
+            if(face == BlockFace.FRONT || face == BlockFace.BACK) {
+                return (byte)c.getLightValue(x,y,z+((face==BlockFace.FRONT) ? 1 : -1));
+            }
+        }
         if(face == BlockFace.TOP || face == BlockFace.BOTTOM){
             int dirX = side[i] == 0 ? -1 : 1;
             int dirZ = side[i+2] == 0 ? -1 : 1;

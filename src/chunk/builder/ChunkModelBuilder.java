@@ -48,9 +48,6 @@ public class ChunkModelBuilder {
         chunks.add(c);
         Layer[] layers = c.getLayers();
         for(int i = 0; i < layers.length; i++ ){
-            if(c.getX() == -5 && c.getZ() == -20) {
-                System.out.println("error chunk adding: " + layers[i].getY());
-            }
            addLayer(layers[i]);
         }
         lock.lock();

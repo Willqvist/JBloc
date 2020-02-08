@@ -71,8 +71,8 @@ public abstract class Block implements IBlock {
         addBlock(new BasicBlock(DIRT,TextureCoordinate.from(2,0, texture)));
         addBlock(new BasicBlock(SAND,TextureCoordinate.from(2,1, texture)));
         addBlock(new BasicBlock(STONE,TextureCoordinate.from(1,0, texture)));
-        addBlock(new BasicBlock(WATER,TextureCoordinate.from(13,12, texture),false,true,false,15));
-        addBlock(new BasicBlock(LEAF,TextureCoordinate.from(4,3, texture),false,true,true,15));
+        addBlock(new BasicBlock(WATER,TextureCoordinate.from(13,12, texture),false,true,false,false,5));
+        addBlock(new BasicBlock(LEAF,TextureCoordinate.from(4,3, texture),false,true,true,false,5));
         addBlock(new LightBlock(TORCH,TextureCoordinate.from(0,5, texture)));
     }
 
@@ -92,4 +92,8 @@ public abstract class Block implements IBlock {
      * @return
      */
     public abstract int getLightPenetration();
+
+    public boolean blocksLight() {
+        return true;
+    }
 }

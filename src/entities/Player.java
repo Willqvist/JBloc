@@ -88,16 +88,28 @@ public class Player extends PhysicsEntity {
 
         if(Engine.mouse.isLeftPressed()) {
             destroyBlock();
+            Vector3d p = getTransform().getPosition();
+            ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
+            System.out.println("LIGHT AT PLAYER: " + chunk.getLightValue(pos.x,pos.y,pos.z));
         }
-
-        if(Engine.mouse.isRightPressed()) {
+        if(Engine.key.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) && Engine.mouse.isRightPressed()) {
             rayPlaceBlock(Block.TORCH);
         }
+        else if(Engine.mouse.isRightPressed()) {
+            rayPlaceBlock(Block.STONE);
+            Vector3d p = getTransform().getPosition();
+            ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
+            System.out.println("LIGHT AT PLAYER: " + chunk.getLightValue(pos.x,pos.y,pos.z));
+        }
 
-        if(chunk == null) {
-            getVelocity().clear(Axis.Y);
+        if(chunk != null) {
+            Vector3d p = getTransform().getPosition();
+            ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
+            //System.out.println(chunk.getLightValue(pos.x,pos.y,pos.z));
         }
     }
+
+    private Vector3i pos = new Vector3i(0,0,0);
 
     @Override
     public float volume() {

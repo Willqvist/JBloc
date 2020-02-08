@@ -40,6 +40,11 @@ public class AirBlock extends Block {
 
     @Override
     public int getLightPenetration() {
-        return 15;
+        return 1;
+    }
+
+    @Override
+    public boolean blocksLight() {
+        return false;
     }
 }

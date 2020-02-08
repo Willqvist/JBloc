@@ -11,6 +11,9 @@ import engine.render.Transform;
 import engine.tools.RoffColor;
 
 import java.awt.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Objects;
 
 public class Layer implements IRenderable {
     private Model model = null, transparentModel = null;
@@ -19,6 +22,8 @@ public class Layer implements IRenderable {
     private int[] layerOpaque;
     private int y;
     private static Transform transform = new Transform(0,0,0);
+    private HashMap<Integer,Layer> blockEditListeners = new HashMap<>();
+
     private Chunk c;
     private int renderableBlocks = 0;
     protected Layer(Chunk c,int y,int height){
@@ -175,4 +180,41 @@ public class Layer implements IRenderable {
         ChunkModelBuilder.addLayer(this);
     }
 
+    public void onBlockEdited(int x,int y,int z,Layer layer) {
+        this.rebuild();
+    }
+
+    public void executeBlockEdit(Chunk c,int x, int y, int z) {
+        int hash = Objects.hash(c,x,y,z);
+        if(blockEditListeners.containsKey(hash)) {
+            onBlockEdited(x,y,z,blockEditListeners.get(hash));
+        }
+    }
+
+    public void addBlockEditListener(Chunk c,int x, int y, int z) {
+        blockEditListeners.put(Objects.hash(c,x,y,z),c.getLayer(y));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Layer layer = (Layer) o;
+        return renderable == layer.renderable &&
+                dirty == layer.dirty &&
+                y == layer.y &&
+                renderableBlocks == layer.renderableBlocks &&
+                Objects.equals(model, layer.model) &&
+                Objects.equals(transparentModel, layer.transparentModel) &&
+                Arrays.equals(layerOpaque, layer.layerOpaque) &&
+                Objects.equals(blockEditListeners, layer.blockEditListeners) &&
+                Objects.equals(c, layer.c);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(model, transparentModel, renderable, dirty, y, blockEditListeners, c, renderableBlocks);
+        result = 31 * result + Arrays.hashCode(layerOpaque);
+        return result;
+    }
 }

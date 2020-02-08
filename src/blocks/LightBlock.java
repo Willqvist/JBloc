@@ -25,7 +25,7 @@ public class LightBlock extends Block {
 
     @Override
     public int getLightPenetration() {
-        return 15;
+        return 1;
     }
 
     @Override
@@ -36,5 +36,10 @@ public class LightBlock extends Block {
     @Override
     public boolean isRenderable() {
         return true;
+    }
+
+    @Override
+    public boolean blocksLight() {
+        return false;
     }
 }
