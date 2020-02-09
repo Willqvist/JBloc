@@ -162,10 +162,6 @@ public class World implements ChunkProvider{
     private void addChunk(Chunk c){
         int x = c.getX();
         int z = c.getZ();
-        Coord cord = new Coord(x,z);
-        if(chunkMap.containsKey(cord)) return;
-        chunks.add(c);
-        chunkMap.put(cord,c);
 
         Chunk neigh;
         if((neigh = getChunk(x-1,z)) != null){
@@ -201,6 +197,12 @@ public class World implements ChunkProvider{
             neigh.setNeighbour(c, Neighbour.RIGHT_BACK);
             c.setNeighbour(neigh,Neighbour.LEFT_FRONT);
         }
+
+        Coord cord = new Coord(x,z);
+        if(chunkMap.containsKey(cord)) return;
+        chunks.add(c);
+        chunkMap.put(cord,c);
+
     }
 
     public void render(Renderer renderer){

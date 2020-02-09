@@ -1,16 +1,18 @@
 package blocks;
 
+import blocks.models.BlockModel;
+import blocks.models.TorchModel;
 import engine.texture.TextureCoordinate;
 
-public class LightBlock extends Block {
-
-    public LightBlock(short id, TextureCoordinate textureCoordinate) {
-        super(id, textureCoordinate);
+public class BlockTorch extends Block {
+    private static BlockModel torchModel = new TorchModel();
+    public BlockTorch(short id) {
+        super(id);
     }
 
     @Override
     public boolean isSolid() {
-        return true;
+        return false;
     }
 
     @Override
@@ -30,7 +32,7 @@ public class LightBlock extends Block {
 
     @Override
     public boolean isOpaque() {
-        return false;
+        return true;
     }
 
     @Override
@@ -41,5 +43,15 @@ public class LightBlock extends Block {
     @Override
     public boolean blocksLight() {
         return false;
+    }
+
+    @Override
+    public BlockModel getModel() {
+        return torchModel;
+    }
+
+    @Override
+    public TextureCoordinate getFaceTexture(BlockFace face) {
+        return torchModel.getTexture(face);
     }
 }

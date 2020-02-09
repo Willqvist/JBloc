@@ -38,7 +38,7 @@ public class Player extends PhysicsEntity {
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(4000000,250,400000);
+        getTransform().setPosition(2120,320,-100);
         //System.out.println((int)Float.MAX_VALUE);
         camera.update();
     }
@@ -88,18 +88,12 @@ public class Player extends PhysicsEntity {
 
         if(Engine.mouse.isLeftPressed()) {
             destroyBlock();
-            Vector3d p = getTransform().getPosition();
-            ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
-            System.out.println("LIGHT AT PLAYER: " + chunk.getLightValue(pos.x,pos.y,pos.z));
         }
         if(Engine.key.isKeyDown(GLFW.GLFW_KEY_LEFT_SHIFT) && Engine.mouse.isRightPressed()) {
             rayPlaceBlock(Block.TORCH);
         }
         else if(Engine.mouse.isRightPressed()) {
-            rayPlaceBlock(Block.STONE);
-            Vector3d p = getTransform().getPosition();
-            ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
-            System.out.println("LIGHT AT PLAYER: " + chunk.getLightValue(pos.x,pos.y,pos.z));
+            rayPlaceBlock(Block.LEAF);
         }
 
         if(chunk != null) {

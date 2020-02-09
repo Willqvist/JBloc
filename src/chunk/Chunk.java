@@ -161,9 +161,11 @@ public class Chunk implements ICollideable, ICollisionPool {
     }
     private void calcLight(int x,int y,int z, int str,HashSet<Layer> chunksAffected, boolean debug) {
         if(str <= 0) {
+            setLightValue(x,y,z, 0);
             return;
         }
         if(debug) {
+            //System.out.println("NEW STR: " + (str-Block.getBlock(getBlock(x,y,z)).getLightPenetration()));
         }
         setLightValue(x,y,z, str);
         chunksAffected.add(getChunk(x,y,z).getLayer(y));
@@ -199,18 +201,25 @@ public class Chunk implements ICollideable, ICollisionPool {
         }
 
     }
-    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected) {
-        ArrayList<Vector3i> pos = new ArrayList<>();
+    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected,short block) {
+        HashSet<Vector3i> pos = new HashSet<>();
         calcLightRemoval(x,y,z,str,chunksAffected,pos);
+        if(block >= 0) {
+            this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
+            setLightValue(x,y,z,0);
+        }
         for (Vector3i v : pos) {
             calcLight(v.x, v.y, v.z, getLightValue(v.x, v.y, v.z), chunksAffected,true);
         }
     }
-    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected,ArrayList<Vector3i> newLightBlocks) {
+    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected) {
+        calcLightRemoval(x,y,z,str,chunksAffected,(short)-1);
+    }
+    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected,HashSet<Vector3i> newLightBlocks) {
         if(str <= 0) {
             return;
         }
-
+        newLightBlocks.remove(new Vector3i(x,y,z));
         setLightValue(x,y,z, 0);
         Chunk c = getChunk(x,y,z);
         c.lightDirty = true;
@@ -226,7 +235,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         Block back = Block.getBlock(getBlock(x,y,z-1));
         Block top = Block.getBlock(getBlock(x,y+1,z));
         Block bottom = Block.getBlock(getBlock(x,y-1,z));
-        int newStr = str-1;
+        int newStr = str-Block.getBlock(getBlock(x,y,z)).getLightPenetration();
         int val;
         if(newStr == (val=getLightValue(x-1,y,z)) && !left.blocksLight()) {
             calcLightRemoval(x-1,y,z, newStr,chunksAffected,newLightBlocks);
@@ -290,13 +299,14 @@ public class Chunk implements ICollideable, ICollisionPool {
                                 isLightSource(x + 1, y, z) &&
                                 isLightSource(x, y + 1, z) &&
                                 isLightSource(x, y - 1, z) &&
+                                isLightSource(x, y - 1, z) &&
                                 isLightSource(x, y, z - 1) &&
                                 isLightSource(x, y, z + 1) &&
                                 isLightSource(x, y, z)) {
-                            setLightValue(x, y, z, Block.getBlock(getBlock(x, y, z)).getEmissionStrength());
+                            setLightValue(x, y, z, getLightValue(x,y,z));
                         } else if (isLightSource(x, y, z)) {
-                            int str = Block.getBlock(getBlock(x, y, z)).getEmissionStrength();
-                            setLightValue(x, y, z, Block.getBlock(getBlock(x, y, z)).getEmissionStrength());
+                            int str = Block.getBlock(getBlock(x,y,z)).getEmissionStrength();
+                            setLightValue(x, y, z, str);
                             calcLight(x, y, z, str,affectedChunks);
                         }
 
@@ -314,7 +324,6 @@ public class Chunk implements ICollideable, ICollisionPool {
     public void setLightValue(int x,int y, int z,int value) {
 
         Chunk n;
-
         if(y < 0 || y >= Chunk.HEIGHT) {
             return;
         }
@@ -324,6 +333,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         else if((z < 0 && (n=getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=getNeighbour(Neighbour.BACK)) != null)) {
             n.setLightValue(x, y, ChunkTools.toBlockPosition(z), value);
         } else {
+            value = Math.min(15,Math.max(0,value));
             int curValue = this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z];
             this.lightValue[x * HEIGHT * DEPTH + y * DEPTH + z] = curValue & ~0XF | value;
         }
@@ -451,20 +461,10 @@ public class Chunk implements ICollideable, ICollisionPool {
         return neightbours[neighbour.ordinal()];
     }
 
-    private void executeListeners(int x,int y,int z) {
-        for(int i = 0 ; i <neightbours.length; i++) {
-            for(int j = 0; j < Chunk.HEIGHT; j += 16) {
-                neightbours[i].getLayer(j).executeBlockEdit(this, x, y, z);
-            }
-        }
-    }
-
     private void rebuildSet(HashSet<Layer> layers) {
         Iterator<Layer> c = layers.iterator();
         while(c.hasNext()) {
             Layer n = c.next();
-            //System.out.println("Layer pos: " + n.getChunk().getX() + " | " + n.getY() + " | " + n.getChunk().getZ());
-            if(n.getChunk().equals(this)) continue;
             ChunkModelBuilder.addLayer(n);
         }
     }
@@ -494,36 +494,30 @@ public class Chunk implements ICollideable, ICollisionPool {
         else {
             Block b = Block.getBlock(block);
             if(block == Block.AIR && getBlock(x,y+1,z) == Block.AIR && isLightSource(x,y+1,z)) {
-                setLightSource(x,y,z,true);
-                skyLightRecurse(x,y-1,z,true,null);
+                this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
+                HashSet<Layer> affC = new HashSet<>();
+                skyLightRecurse(x,y,z,true,affC);
+                rebuildSet(affC);
             }
             else if(!b.isLightSource()) {
-                System.out.println("not light!!");
-                this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
+                HashSet<Layer> affC = new HashSet<>();
+
                 if(getBlock(x,y,z) == Block.AIR && isLightSource(x,y,z)) {
-                    System.out.println("IM HERE!!");
-                    HashSet<Layer> affC = new HashSet<>();
+                    calcLightRemoval(x,y,z,getLightValue(x,y,z),affC,block);
                     setLightSource(x,y,z,false);
-                    calcLightRemoval(x,y,z,getLightValue(x,y,z),affC);
                     skyLightRecurse(x,y-1,z,false,affC);
-                    rebuildSet(affC);
+                }else {
+                    if (isLightSource(x, y, z)) {
+                        calcLightRemoval(x, y, z, getLightValue(x, y, z), affC,block);
+                    }
+                    setLightSource(x, y, z, false);
+                    calcLightRemoval(x, y, z, getLightValue(x,y,z), affC,block);
+                    if (!b.blocksLight()) {
+                        calcLight(x, y, z, getBiggestNeighbourLightValue(x, y, z) - b.getLightPenetration(), affC);
+                    }
                 }
-                if(isLightSource(x,y,z) || b.blocksLight()) {
-                    setLightSource(x,y,z,false);
-                    HashSet<Layer> affC = new HashSet<>();
-                    System.out.println("REMOVING LIGHTS");
-                    calcLightRemoval(x,y,z,getLightValue(x,y,z),affC);
-                    rebuildSet(affC);
-                } else if(!b.blocksLight()) {
-                    setLightSource(x,y,z,false);
-                    HashSet<Layer> affC = new HashSet<>();
-                    System.out.println("NEW LIGHT VALUE: " + (getBiggestNeighbourLightValue(x,y,z)-b.getLightPenetration()));
-                    calcLightRemoval(x,y,z,getLightValue(x,y,z),affC);
-                    calcLight(x,y,z,getBiggestNeighbourLightValue(x,y,z)-b.getLightPenetration(),affC);
-                    rebuildSet(affC);
-                }
+                rebuildSet(affC);
             } else {
-                System.out.println("is light source!!!!!");
                 setLightSource(x,y,z,true);
             }
             getLayer(y).onNewBlockSet(x, y, z, block);
@@ -537,13 +531,15 @@ public class Chunk implements ICollideable, ICollisionPool {
             return;
         }
         short block = getBlock(x,y,z);
-        if((isLight || isLightSource(x,y,z)) && !Block.getBlock(block).blocksLight()) {
+        if((isLight || block == Block.AIR) && !Block.getBlock(block).blocksLight()) {
             setLightSource(x,y,z,isLight);
+            System.out.println("recurse blocks set:  " + x + " | " + y + " | " + z + " | " + (y/LAYER_HEIGHT));
+            layers.add(getLayer(y));
+            lightDirty = true;
             if(isLight) {
-                System.out.println("adding lifht source!!");
+                //setLightValue(x,y,z,Math.max(0,str));
                 //calcLight(x,y,z,getLightValue(x,y,z),layers);
             } else {
-                System.out.println("REMOVE SKY LIGHT");
                 calcLightRemoval(x,y,z,getLightValue(x,y,z),layers);
             }
             skyLightRecurse(x,y-1,z,isLight,layers);

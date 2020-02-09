@@ -1,5 +1,8 @@
 package blocks;
 
+import blocks.models.BasicModel;
+import blocks.models.BlockModel;
+import blocks.models.TorchModel;
 import chunk.Faces;
 import engine.physics.AABB;
 import engine.texture.TextureAtlas;
@@ -9,6 +12,7 @@ import engine.texture.TextureLoader;
 public abstract class Block implements IBlock {
     private static final int NUM_BLOCKS=200;
     private static Block[] blocks = new Block[NUM_BLOCKS];
+    private static BlockModel model = new BasicModel();
     public static TextureAtlas texture;
     private TextureCoordinate tex;
     protected short id=0;
@@ -24,15 +28,12 @@ public abstract class Block implements IBlock {
 
     @Override
     public float[] getFaceData(BlockFace face) {
-        switch(face) {
-            case BOTTOM: return Faces.BOTTOM;
-            case LEFT: return Faces.LEFT;
-            case FRONT: return Faces.FRONT;
-            case BACK: return Faces.BACK;
-            case RIGHT: return Faces.RIGHT;
-            case TOP: return Faces.TOP;
-        }
-        return null;
+        return getModel().getModelFaces(face);
+    }
+
+    @Override
+    public BlockModel getModel() {
+        return model;
     }
 
     @Override
@@ -71,9 +72,9 @@ public abstract class Block implements IBlock {
         addBlock(new BasicBlock(DIRT,TextureCoordinate.from(2,0, texture)));
         addBlock(new BasicBlock(SAND,TextureCoordinate.from(2,1, texture)));
         addBlock(new BasicBlock(STONE,TextureCoordinate.from(1,0, texture)));
-        addBlock(new BasicBlock(WATER,TextureCoordinate.from(13,12, texture),false,true,false,false,5));
+        addBlock(new BasicBlock(WATER,TextureCoordinate.from(13,12, texture),false,true,false,false,10));
         addBlock(new BasicBlock(LEAF,TextureCoordinate.from(4,3, texture),false,true,true,false,5));
-        addBlock(new LightBlock(TORCH,TextureCoordinate.from(0,5, texture)));
+        addBlock(new BlockTorch(TORCH));
     }
 
     public abstract boolean isSolid();
@@ -95,5 +96,9 @@ public abstract class Block implements IBlock {
 
     public boolean blocksLight() {
         return true;
+    }
+
+    public int skyLightFalloff() {
+        return getLightPenetration();
     }
 }
