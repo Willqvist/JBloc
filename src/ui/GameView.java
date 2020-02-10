@@ -2,31 +2,25 @@ package ui;
 
 import engine.texture.Texture;
 import engine.texture.TextureLoader;
+import engine.tools.RoffColor;
 import engine.ui.*;
 import engine.ui.Frame;
 import engine.ui.Panel;
 import engine.ui.UIManager;
 
+import java.awt.*;
+
 public class GameView {
 
     public GameView() {
         WindowComponent frame = UIManager.getFrame();
-        Component panel = new Panel(Scale.NONE);
-        panel.setWidth(3,Unit.PERCENT);
-        panel.setHeight(1,Unit.WIDTH_RATIO);
-        panel.setMinDimension(5,5);
-        panel.setMaxDimension(80,80);
+        Panel panel = new Panel(Scale.NONE);
+        panel.setDimension(18,18);
         Texture crosshair = TextureLoader.load("crosshair.png");
         panel.setBackgroundImage(crosshair);
         panel.setOrigin(Origin.CENTER);
         panel.setPivot(Origin.CENTER);
-
-        Panel p = new Panel(Scale.NONE);
-        p.setDimension(20,20);
-
         frame.add(panel);
-        //frame.add(p);
-        frame.revalidate();
         /*
         Frame frame = UIManager.getFrame();
         Panel panel = new Panel(Scale.SCALE_TO_FIT);

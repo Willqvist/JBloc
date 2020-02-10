@@ -1,6 +1,7 @@
 package chunk;
 
 import blocks.Block;
+import chunk.builder.ChunkModelBuilder;
 import engine.model.Model;
 import engine.physics.AABB;
 import engine.render.IRenderable;
@@ -10,6 +11,9 @@ import engine.render.Transform;
 import engine.tools.RoffColor;
 
 import java.awt.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Objects;
 
 public class Layer implements IRenderable {
     private Model model = null, transparentModel = null;
@@ -18,6 +22,8 @@ public class Layer implements IRenderable {
     private int[] layerOpaque;
     private int y;
     private static Transform transform = new Transform(0,0,0);
+    private HashMap<Integer,Layer> blockEditListeners = new HashMap<>();
+
     private Chunk c;
     private int renderableBlocks = 0;
     protected Layer(Chunk c,int y,int height){
@@ -32,16 +38,17 @@ public class Layer implements IRenderable {
     private static AABB ab = new AABB(transform,16,16,16);
     private static RoffColor red = RoffColor.from(Color.RED), grn = RoffColor.from(Color.GREEN);
     protected void render(Renderer renderer){
-        transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
         if(model != null) {
-            renderer.render(model,getTransform(),getMaterial());
+            transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
+            renderer.render(model,transform,getMaterial());
         }
     }
 
-    protected void renderTransparentLayer(Renderer renderer) {
-        transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
+    protected void renderTransparent(Renderer renderer){
+
         if(transparentModel != null) {
-            renderer.render(transparentModel,getTransform(),getMaterial());
+            transform.setPosition(c.getX()*Chunk.WIDTH,y,c.getZ()*Chunk.DEPTH);
+            renderer.render(transparentModel,transform,getMaterial());
         }
     }
 
@@ -50,12 +57,13 @@ public class Layer implements IRenderable {
     }
 
     public void onBlockSet(int x,int y,int z,short block){
+        //if(block == 1) renderable = true;
         setDirty(true);
         int ly = toLayerY(y);
         Block b = Block.getBlock(block);
         layerOpaque[ly] += b.isOpaque() ? 1 : -1;
         layerOpaque[ly] = Math.max(0,layerOpaque[ly]);
-        renderableBlocks += b.isRenderable() ? 1 : -1;
+        renderableBlocks += b.isRenderable() ? 1 : 0;
     }
 
     private boolean isYTop(int y){
@@ -70,26 +78,9 @@ public class Layer implements IRenderable {
         this.dirty = dirty;
     }
 
-    private void rebuildLayer(int x,int y, int z) {
-        Chunk n;
-        /*
-        if((x == 0 && (n=c.getNeighbour(Neighbour.LEFT)) != null )|| (x >= Chunk.WIDTH && (n=c.getNeighbour(Neighbour.RIGHT)) != null))
-            return n.getLightValue(ChunkTools.toBlockPosition(x),y,z);
-        if((z < 0 && (n=c.getNeighbour(Neighbour.FRONT)) != null )|| (z >= Chunk.DEPTH && (n=c.getNeighbour(Neighbour.BACK)) != null))
-            return n.getLightValue(x,y,ChunkTools.toBlockPosition(z));
-
-        //if(c.isOutsideY(y)) return (byte)15;
-
-        if(x < 0 || z >= Chunk.DEPTH || z < 0 || x >= Chunk.WIDTH)
-            return;
-        */
-        DirtyLayerProvider.addLayer(this);
-    }
-
     public void onNewBlockSet(int x,int y,int z,short block){
         onBlockSet(x,y,z,block);
 
-        System.out.println("SETTIGNS BLOCK: " + block + " < " + x + " | " + y + " | " + z);
         if(x == 0)
             rebuild(y,Neighbour.LEFT);
         if(x == Chunk.WIDTH-1)
@@ -105,23 +96,6 @@ public class Layer implements IRenderable {
         }
         if(y % Chunk.LAYER_HEIGHT == 0 && y >= Chunk.LAYER_HEIGHT) {
             DirtyLayerProvider.addLayer(c.getLayer(y-Chunk.LAYER_HEIGHT));
-        }
-
-        if(x== 0 && z == 0) {
-            Layer l = c.getNeighbour(Neighbour.LEFT).getLayer(y);
-            l.rebuild(y,Neighbour.FRONT);
-        }
-        if(x == Chunk.WIDTH - 1 && z == 0) {
-            Layer l = c.getNeighbour(Neighbour.RIGHT).getLayer(y);
-            l.rebuild(y,Neighbour.FRONT);
-        }
-        if(x == 0 && z == Chunk.DEPTH-1) {
-            Layer l = c.getNeighbour(Neighbour.LEFT).getLayer(y);
-            l.rebuild(y,Neighbour.BACK);
-        }
-        if(x == Chunk.WIDTH - 1 && z == Chunk.DEPTH-1) {
-            Layer l = c.getNeighbour(Neighbour.RIGHT).getLayer(y);
-            l.rebuild(y,Neighbour.BACK);
         }
 
         DirtyLayerProvider.addLayer(this);
@@ -166,16 +140,12 @@ public class Layer implements IRenderable {
         return y%Chunk.LAYER_HEIGHT;
     }
 
-    protected void setModel(Model model){
+    public void setModel(Model model){
         this.model = model;
     }
 
-    public void setTransparentModel(Model model) {
-        transparentModel = model;
-    }
-
-    public void render() {
-
+    public void setTransparentModel(Model model){
+        this.transparentModel = model;
     }
 
     @Override
@@ -206,9 +176,45 @@ public class Layer implements IRenderable {
     }
 
     public void rebuild() {
-        Layer l;
         setDirty(false);
-        ChunkModelBuilder.addLayerUnsafe(this);
+        ChunkModelBuilder.addLayer(this);
     }
 
+    public void onBlockEdited(int x,int y,int z,Layer layer) {
+        this.rebuild();
+    }
+
+    public void executeBlockEdit(Chunk c,int x, int y, int z) {
+        int hash = Objects.hash(c,x,y,z);
+        if(blockEditListeners.containsKey(hash)) {
+            onBlockEdited(x,y,z,blockEditListeners.get(hash));
+        }
+    }
+
+    public void addBlockEditListener(Chunk c,int x, int y, int z) {
+        blockEditListeners.put(Objects.hash(c,x,y,z),c.getLayer(y));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Layer layer = (Layer) o;
+        return renderable == layer.renderable &&
+                dirty == layer.dirty &&
+                y == layer.y &&
+                renderableBlocks == layer.renderableBlocks &&
+                Objects.equals(model, layer.model) &&
+                Objects.equals(transparentModel, layer.transparentModel) &&
+                Arrays.equals(layerOpaque, layer.layerOpaque) &&
+                Objects.equals(blockEditListeners, layer.blockEditListeners) &&
+                Objects.equals(c, layer.c);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(model, transparentModel, renderable, dirty, y, blockEditListeners, c, renderableBlocks);
+        result = 31 * result + Arrays.hashCode(layerOpaque);
+        return result;
+    }
 }

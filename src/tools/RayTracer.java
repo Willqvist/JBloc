@@ -2,6 +2,7 @@ package tools;
 
 import engine.camera.Camera;
 import engine.camera.Camera3D;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
@@ -41,11 +42,11 @@ public class RayTracer {
     public static TraceResult traceVoxelGrid(Camera3D camera, float maxDistance, Function<Vector3i, Boolean> callback) {
         return traceVoxelGrid(camera.getFollow().getPosition(),camera.getForward(),maxDistance,callback);
     }
-    private static Vector3f direction = new Vector3f(0,0,0);
+    private static Vector3d direction = new Vector3d(0,0,0);
     private static Vector3i voxelPos = new Vector3i(0,0,0);
     private static Vector3i face = new Vector3i(0, 0, 0);
-    public static TraceResult traceVoxelGrid(Vector3f origin, Vector3f direction, float maxDistance, Function<Vector3i, Boolean> callback) {
-        float distance = (float) Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+    public static TraceResult traceVoxelGrid(Vector3d origin, Vector3f direction, float maxDistance, Function<Vector3i, Boolean> callback) {
+        double distance = (float) Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
         if (distance == 0)
             return res.set(false,null);
 
@@ -60,19 +61,19 @@ public class RayTracer {
         boolean yInf = direction.y == 0;
         boolean zInf = direction.z == 0;
 
-        float txDelta = !xInf ? Math.abs(1f / direction.x) : Float.MAX_VALUE;
-        float tyDelta = !yInf ? Math.abs(1f / direction.y) : Float.MAX_VALUE;
-        float tzDelta = !zInf ? Math.abs(1f / direction.z) : Float.MAX_VALUE;
+        double txDelta = !xInf ? Math.abs(1f / direction.x) : Float.MAX_VALUE;
+        double tyDelta = !yInf ? Math.abs(1f / direction.y) : Float.MAX_VALUE;
+        double tzDelta = !zInf ? Math.abs(1f / direction.z) : Float.MAX_VALUE;
 
-        float xDist = stepX > 0 ? voxelPos.x + 1 - origin.x : origin.x - voxelPos.x;
-        float yDist = stepY > 0 ? voxelPos.y + 1 - origin.y : origin.y - voxelPos.y;
-        float zDist = stepZ > 0 ? voxelPos.z + 1 - origin.z : origin.z - voxelPos.z;
+        double xDist = stepX > 0 ? voxelPos.x + 1 - origin.x : origin.x - voxelPos.x;
+        double yDist = stepY > 0 ? voxelPos.y + 1 - origin.y : origin.y - voxelPos.y;
+        double zDist = stepZ > 0 ? voxelPos.z + 1 - origin.z : origin.z - voxelPos.z;
 
-        float txMax = !xInf ? txDelta * xDist : Float.MAX_VALUE;
-        float tyMax = !yInf ? tyDelta * yDist : Float.MAX_VALUE;
-        float tzMax = !zInf ? tzDelta * zDist : Float.MAX_VALUE;
+        double txMax = !xInf ? txDelta * xDist : Float.MAX_VALUE;
+        double tyMax = !yInf ? tyDelta * yDist : Float.MAX_VALUE;
+        double tzMax = !zInf ? tzDelta * zDist : Float.MAX_VALUE;
 
-        float t = 0;
+        double t = 0;
         int pickDirection = -1;
         face.set(0,0,0);
         while (t < maxDistance) {

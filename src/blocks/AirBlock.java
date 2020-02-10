@@ -29,7 +29,27 @@ public class AirBlock extends Block {
     }
 
     @Override
-    public int getLightPenetration() {
+    public boolean isLightSource() {
+        return false;
+    }
+
+    @Override
+    public int getEmissionStrength() {
         return 15;
+    }
+
+    @Override
+    public int getLightPenetration() {
+        return 2;
+    }
+
+    @Override
+    public boolean blocksLight() {
+        return false;
+    }
+
+    @Override
+    public int skyLightFalloff() {
+        return 0;
     }
 }
