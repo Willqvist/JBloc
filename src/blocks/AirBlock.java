@@ -52,4 +52,9 @@ public class AirBlock extends Block {
     public int skyLightFalloff() {
         return 0;
     }
+
+    @Override
+    public boolean canBeDestroyed() {
+        return false;
+    }
 }

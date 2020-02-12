@@ -170,7 +170,7 @@ public class Player extends PhysicsEntity {
             if(c==null) return false;
             Vector3i blockPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z,traceResultSrc);
             Block b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z));
-            if(b.isSolid()) {
+            if(b.canBeDestroyed()) {
                 pickedBlockPosition.set(pos);
                 pickedChunk = c;
                 return true;

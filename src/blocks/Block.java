@@ -77,6 +77,14 @@ public abstract class Block implements IBlock {
         addBlock(new BlockTorch(TORCH));
     }
 
+    public boolean blocksFace(BlockFace face) {
+        return true;
+    }
+
+    public boolean canBeDestroyed() {
+        return true;
+    }
+
     public abstract boolean isSolid();
 
     public boolean isLightSource() {
@@ -100,5 +108,9 @@ public abstract class Block implements IBlock {
 
     public int skyLightFalloff() {
         return getLightPenetration();
+    }
+
+    public boolean reciveShadows() {
+        return true;
     }
 }

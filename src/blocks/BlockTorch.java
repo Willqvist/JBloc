@@ -2,17 +2,19 @@ package blocks;
 
 import blocks.models.BlockModel;
 import blocks.models.TorchModel;
+import engine.physics.AABB;
 import engine.texture.TextureCoordinate;
 
 public class BlockTorch extends Block {
     private static BlockModel torchModel = new TorchModel();
+    private static AABB ab = new AABB(0.4f,0,0.4f,0.2f,0.8f,0.2f);
     public BlockTorch(short id) {
         super(id);
     }
 
     @Override
     public boolean isSolid() {
-        return false;
+        return true;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class BlockTorch extends Block {
 
     @Override
     public int getLightPenetration() {
-        return 1;
+        return 0;
     }
 
     @Override
@@ -53,5 +55,20 @@ public class BlockTorch extends Block {
     @Override
     public TextureCoordinate getFaceTexture(BlockFace face) {
         return torchModel.getTexture(face);
+    }
+
+    @Override
+    public boolean blocksFace(BlockFace face) {
+        return false;
+    }
+
+    @Override
+    public AABB getCollisionBox(int x, int y, int z) {
+        return ab.move(x+0.4f,y,z+0.4f);
+    }
+
+    @Override
+    public boolean reciveShadows() {
+        return false;
     }
 }
