@@ -17,7 +17,12 @@ public class ForestBiome extends Biome {
                 return Block.WATER;
             return Block.AIR;
         }
-        else if(y == height) return Block.GRASS;
+        else if(y == height) {
+            double noise = NoiseHelper.generate3DNoise(x,y,z,2,0.6f,0.02f);
+            if(noise > 0.6f)
+                return Block.AIR;
+            return Block.GRASS;
+        }
         else if(y > height - 5) return Block.DIRT;
         return Block.STONE; // STONE HERE;
     }

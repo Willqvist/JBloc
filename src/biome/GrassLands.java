@@ -17,7 +17,10 @@ public class GrassLands extends Biome {
                 return Block.WATER;
             return Block.AIR;
         }
-        else if(y == height){
+        double noise = NoiseHelper.generate3DNoise(x,y,z,2,0.2f,0.01f);
+        if(noise > 0.6f)
+            return Block.AIR;
+        if(y == height){
             if(y < WATER_LEVEL)
                 return Block.DIRT;
             return Block.GRASS;
@@ -33,7 +36,7 @@ public class GrassLands extends Biome {
 
     @Override
     public NoiseData getNoiseData() {
-        return new NoiseData(4,0.8f,0.013f);
+        return new NoiseData(4,2f,0.013f);
     }
 
     @Override

@@ -1,13 +1,58 @@
 <component name="libraryTable">
   <library name="LWJGL">
     <CLASSES>
-      <root url="file://$PROJECT_DIR$/../../LWJGL3 SOURCE/3.2.3" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/joml-1.9.20.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-assimp-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-assimp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-bgfx-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-bgfx.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-glfw-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-glfw.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nanovg-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nanovg.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nuklear-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nuklear.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-openal-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-openal.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-opengl-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-opengl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-par-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-par.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-stb-natives-windows.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-stb.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-vulkan.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjglx-debug-1.0.0.jar!/" />
     </CLASSES>
-    <JAVADOC />
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/joml-1.9.20-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-assimp-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-bgfx-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-glfw-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nanovg-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nuklear-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-openal-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-opengl-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-par-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-stb-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-vulkan-javadoc.jar!/" />
+    </JAVADOC>
     <SOURCES>
-      <root url="file://$PROJECT_DIR$/../../LWJGL3 SOURCE/3.2.3" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/joml-1.9.20-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-assimp-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-bgfx-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-glfw-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nanovg-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-nuklear-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-openal-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-opengl-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-par-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-stb-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjgl-vulkan-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/artifacts/EngineTest_jar/libs/lwjglx-debug-1.0.0-sources.jar!/" />
     </SOURCES>
-    <jarDirectory url="file://$PROJECT_DIR$/../../LWJGL3 SOURCE/3.2.3" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/../../LWJGL3 SOURCE/3.2.3" recursive="false" type="SOURCES" />
   </library>
 </component>

@@ -44,22 +44,22 @@ public class LayerBuilder {
                 for(int z = 0; z < Chunk.DEPTH; z++){
                     Block block = Block.getBlock(c.getBlock(x,y,z));
                     if(block.isRenderable()){
-                        if(!(b = Block.getBlock(c.getBlock(x - 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x - 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.RIGHT) || !block.blocksFace(BlockFace.LEFT))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block, BlockFace.LEFT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x + 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x + 1, y, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.LEFT) || !block.blocksFace(BlockFace.RIGHT))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.RIGHT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y-1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x, y-1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.TOP) || !block.blocksFace(BlockFace.BOTTOM))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.BOTTOM,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y+1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x, y+1, z))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.BOTTOM) || !block.blocksFace(BlockFace.TOP))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.TOP,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y, z+1))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x, y, z+1))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.BACK) || !block.blocksFace(BlockFace.FRONT))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.FRONT,x,yl,z,y);
 
-                        if(!(b = Block.getBlock(c.getBlock(x, y, z-1))).isRenderable() || (!b.isOpaque() && block.isOpaque()))
+                        if(!(b = Block.getBlock(c.getBlock(x, y, z-1))).isRenderable() || (!b.isOpaque() && block.isOpaque()) || !b.blocksFace(BlockFace.FRONT) || !block.blocksFace(BlockFace.BACK))
                             addFace(c,block.isOpaque() ? opaqueModel : transparentModel,block,BlockFace.BACK,x,yl,z,y);
 
                     }
@@ -134,7 +134,11 @@ public class LayerBuilder {
                 builder.addFloat(cord.getOffsetX() + (1-vertices[i+2]) * cord.getWidth());
                 builder.addFloat(cord.getOffsetY() + (1-vertices[i+1]) * cord.getHeight());
             }
-            builder.addFloat(((float)getMinLightValue(c,face,vertices,i,x,yReal,z))/15f);
+            if(block.reciveShadows()) {
+                builder.addFloat(((float) getMinLightValue(c, face, vertices, i, x, yReal, z)) / 15f);
+            }else {
+                builder.addFloat(1);
+            }
             ti += 2;
             /*
             builder.addFloats(

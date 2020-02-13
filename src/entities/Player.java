@@ -38,7 +38,7 @@ public class Player extends PhysicsEntity {
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(2120,320,-100);
+        getTransform().setPosition(8000,320,7100);
         //System.out.println((int)Float.MAX_VALUE);
         camera.update();
     }
@@ -170,7 +170,7 @@ public class Player extends PhysicsEntity {
             if(c==null) return false;
             Vector3i blockPos = ChunkTools.toBlockPosition(pos.x,pos.y,pos.z,traceResultSrc);
             Block b = Block.getBlock(c.getBlock(blockPos.x,blockPos.y,blockPos.z));
-            if(b.isSolid()) {
+            if(b.canBeDestroyed()) {
                 pickedBlockPosition.set(pos);
                 pickedChunk = c;
                 return true;

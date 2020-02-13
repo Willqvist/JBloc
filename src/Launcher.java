@@ -1,6 +1,7 @@
 import engine.Core;
 import engine.CoreAttributes;
 import engine.render.LWJGLRenderer;
+import org.lwjgl.opengl.GL11;
 
 public class Launcher {
     public static void main(String[] args){
