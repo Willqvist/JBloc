@@ -56,11 +56,14 @@ public class ChunkModelBuilder {
     }
 
     public static synchronized void addLayer(Layer layer) {
-        chunks.add(layer.getChunk());
-        layers.add(layer);
-        lock.lock();
-        cond.signal();
-        lock.unlock();
+        if(!chunks.contains(layer.getChunk()))
+            chunks.add(layer.getChunk());
+        if(!layers.contains(layer)) {
+            layers.add(layer);
+            lock.lock();
+            cond.signal();
+            lock.unlock();
+        }
     }
 
     private static synchronized Layer pollLayer() {
@@ -133,16 +136,10 @@ public class ChunkModelBuilder {
                         builder.setOccupied(false);
                         continue;
                     }
-                    long a = System.nanoTime();
                     layer.getChunk().calculateLights();
-                    a = System.nanoTime();
                     layerModelBuilder.buildLayer(layer, builder);
                     Engine.invokeLater(() -> {
                         Model m = builder.getOpaqueModelBuilder().build(attributes);
-
-                        if(layer.getChunk().getX() == -5 && layer.getChunk().getZ() == -20) {
-                            //System.out.println("error chunk layer building: " + layer.getY() + " | " + m);
-                        }
                         layer.setModel(m);
                         layer.setTransparentModel(builder.getTransparentModelBuilder().build(attributes));
                         builder.getOpaqueModelBuilder().clear();

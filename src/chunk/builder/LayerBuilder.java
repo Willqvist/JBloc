@@ -32,7 +32,6 @@ public class LayerBuilder {
         Block b;
         int yl = 0;
         for(int y = layer.getY() + Chunk.LAYER_HEIGHT-1; y >= layer.getY(); y--){
-
             if(layer.getRenderables() == 0){
                 break;
             }
@@ -73,41 +72,41 @@ public class LayerBuilder {
         byte min = 0;
         if(!Settings.smoothLightning) {
             if(face == BlockFace.TOP || face == BlockFace.BOTTOM) {
-               return (byte)c.getLightValue(x,y+((face==BlockFace.TOP) ? 1 : -1),z);
+               return (byte)c.getMaxLightValue(x,y+((face==BlockFace.TOP) ? 1 : -1),z);
             }
             if(face == BlockFace.LEFT || face == BlockFace.RIGHT) {
-                return (byte)c.getLightValue(x+((face==BlockFace.LEFT) ? -1 : 1),y,z);
+                return (byte)c.getMaxLightValue(x+((face==BlockFace.LEFT) ? -1 : 1),y,z);
             }
             if(face == BlockFace.FRONT || face == BlockFace.BACK) {
-                return (byte)c.getLightValue(x,y,z+((face==BlockFace.FRONT) ? 1 : -1));
+                return (byte)c.getMaxLightValue(x,y,z+((face==BlockFace.FRONT) ? 1 : -1));
             }
         }
         if(face == BlockFace.TOP || face == BlockFace.BOTTOM){
             int dirX = side[i] == 0 ? -1 : 1;
             int dirZ = side[i+2] == 0 ? -1 : 1;
             int dir = face == BlockFace.TOP ? 1 : -1;
-            min += c.getLightValue(x,y+dir,z);
-            min += c.getLightValue(x+dirX,y+dir,z);
-            min += c.getLightValue(x,y+dir,z+dirZ);
-            min += c.getLightValue(x+dirX,y+dir,z+dirZ);
+            min += c.getMaxLightValue(x,y+dir,z);
+            min += c.getMaxLightValue(x+dirX,y+dir,z);
+            min += c.getMaxLightValue(x,y+dir,z+dirZ);
+            min += c.getMaxLightValue(x+dirX,y+dir,z+dirZ);
         }
         else if(face == BlockFace.FRONT || face == BlockFace.BACK) {
             int dirX = side[i+0] == 0 ? -1 : 1;
             int dirY = side[i+1] == 0 ? -1 : 1;
             int dir = face == BlockFace.FRONT ? 1 : -1;
-            min += c.getLightValue(x,y,z+dir);
-            min += c.getLightValue(x+dirX,y,z+dir);
-            min += c.getLightValue(x,y+dirY,z+dir);
-            min += c.getLightValue(x+dirX,y+dirY,z+dir);
+            min += c.getMaxLightValue(x,y,z+dir);
+            min += c.getMaxLightValue(x+dirX,y,z+dir);
+            min += c.getMaxLightValue(x,y+dirY,z+dir);
+            min += c.getMaxLightValue(x+dirX,y+dirY,z+dir);
         }
         else if(face == BlockFace.LEFT || face == BlockFace.RIGHT) {
             int dir = face == BlockFace.LEFT ? -1 : 1;
             int dirZ = side[i+2] == 0 ? -1 : 1;
             int dirY = side[i+1] == 0 ? -1 : 1;
-            min += c.getLightValue(x+dir,y,z);
-            min += c.getLightValue(x+dir,y,z+dirZ);
-            min += c.getLightValue(x+dir,y+dirY,z);
-            min += c.getLightValue(x+dir,y+dirY,z+dirZ);
+            min += c.getMaxLightValue(x+dir,y,z);
+            min += c.getMaxLightValue(x+dir,y,z+dirZ);
+            min += c.getMaxLightValue(x+dir,y+dirY,z);
+            min += c.getMaxLightValue(x+dir,y+dirY,z+dirZ);
         }
 
         return (byte)(min/4);
