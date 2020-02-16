@@ -43,8 +43,9 @@ public class ForestBiome extends Biome {
     }
 
     @Override
-    public void generateStructures(IBlockHolder holder, int x, int y, int z) {
+    public void generateStructures(IBlockHolder holder, int x, int y, int z, int height) {
         if(y != holder.getHeight(x,z)+1) return;
+        System.out.println("generating tree!!");
         short b = holder.getBlock(x,y-1,z);
         if(b != Block.DIRT && b != Block.GRASS && holder.getBlock(x,y,z) == Block.AIR) return;
         double treeArea = NoiseHelper.generateNoise(x,z,3,1f,0.5f);

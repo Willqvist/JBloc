@@ -13,6 +13,7 @@ public class DirtyLayerProvider {
     }
 
     public static synchronized void build(){
+        System.out.println("BUILDING DIRTY: " + layers.size());
         Iterator<Layer> layers = DirtyLayerProvider.layers.iterator();
         while(layers.hasNext()){
             layers.next().rebuild();

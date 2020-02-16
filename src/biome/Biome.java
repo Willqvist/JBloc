@@ -33,7 +33,7 @@ public abstract class Biome {
     public abstract BiomeType getId();
     public abstract NoiseData getNoiseData();
     public abstract int smoothRange();
-    public abstract void generateStructures(IBlockHolder holder, int x, int y, int z);
+    public abstract void generateStructures(IBlockHolder holder, int x, int y, int z, int height);
     public abstract int maxHeight();
     public abstract int minHeight();
     public abstract BiomeGroup getGroup();

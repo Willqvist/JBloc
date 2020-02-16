@@ -2,6 +2,7 @@ package biome;
 
 import blocks.Block;
 import blocks.IBlockHolder;
+import chunk.DirtyLayerProvider;
 import engine.tools.Range;
 import tools.NoiseHelper;
 
@@ -17,9 +18,6 @@ public class GrassLands extends Biome {
                 return Block.WATER;
             return Block.AIR;
         }
-        double noise = NoiseHelper.generate3DNoise(x,y,z,2,0.2f,0.01f);
-        if(noise > 0.6f)
-            return Block.AIR;
         if(y == height){
             if(y < WATER_LEVEL)
                 return Block.DIRT;
@@ -45,14 +43,16 @@ public class GrassLands extends Biome {
     }
 
     @Override
-    public void generateStructures(IBlockHolder holder, int x, int y, int z) {
-        if(y != holder.getHeight(x,z)+1) return;
-        if(holder.getBlock(x,y-1,z) != Block.GRASS) return;
-        double treeArea = NoiseHelper.generateNoise(x,z,3,0.8f,0.003f);
-        if(treeArea > 0.4){
-            double isOnTreeSpot = NoiseHelper.generateNoise(x,z,1,0.8f,1);
-            if(isOnTreeSpot >= 0.8){
+    public void generateStructures(IBlockHolder holder, int x, int y, int z,int height) {
+        if(y != height+1) return;
+        short b = holder.getBlock(x,y-1,z);
+        if(b != Block.DIRT && b != Block.GRASS) return;
+        double treeArea = NoiseHelper.generateNoise(x,z,3,1f,0.5f);
 
+        if(treeArea > 0.6 && treeArea < 1){
+            double isOnTreeSpot = NoiseHelper.generateNoise(x,z,1,0.8f,0.1f);
+            if(isOnTreeSpot > 0.8 && isOnTreeSpot < 1){
+                //System.out.println("building blocks");
                 StructureProvider.getStructure(0).build(this,holder,x,y,z);
             }
         }

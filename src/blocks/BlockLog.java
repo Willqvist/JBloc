@@ -7,7 +7,7 @@ public class BlockLog extends Block {
     private TextureCoordinate bottom = TextureCoordinate.from(2,0, texture);
     private TextureCoordinate side;
     public BlockLog(short id, TextureCoordinate side) {
-        super(id);
+        super(id,"Log");
         this.side = side;
     }
 

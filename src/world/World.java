@@ -26,7 +26,8 @@ import java.util.*;
 public class World implements ChunkProvider{
 
     private ArrayList<Chunk> chunks = new ArrayList<>();
-    private HashMap<Coord,Chunk> chunkMap = new HashMap<>();
+    private HashMap<Integer,Chunk> chunkMap = new HashMap<>();
+    private HashMap<Integer,Chunk> activeChunks = new HashMap<>();
     private Camera3D camera;
     private Player player;
     private int lastPosX,lastPosZ;
@@ -63,12 +64,8 @@ public class World implements ChunkProvider{
         System.out.println("this will also be valled");
     }
 
-    private Vector2i cPos = new Vector2i(0,0);
 
     public void addEntity(PhysicsEntity entity){
-        Vector3d pos = entity.getTransform().getPosition();
-        Vector2i cp = ChunkTools.toChunkPosition(pos.x,pos.z,cPos);
-
         Engine.physics.addPhysicsBody(entity);
     }
 
@@ -91,32 +88,29 @@ public class World implements ChunkProvider{
 
     private void loadChunks() {
         Vector3d pos = player.getTransform().getPosition();
-        Vector2i cp = ChunkTools.toChunkPosition((int)pos.x,(int)pos.z,cPos);
-        if(!(lastPosX == cp.x && lastPosZ == cp.y)) {
-            lastPosX = cp.x;
-            lastPosZ = cp.y;
+        int cpx = ChunkTools.toChunkPosition(pos.x);
+        int cpz = ChunkTools.toChunkPosition(pos.z);
+        if(!(lastPosX == cpx && lastPosZ == cpz)) {
+            lastPosX = cpx;
+            lastPosZ = cpz;
             for (int i = -Settings.renderDistance; i <= Settings.renderDistance; i++) {
                 for (int j = -Settings.renderDistance; j <= Settings.renderDistance; j++) {
-                    int cx = cp.x + i;
-                    int cz = cp.y + j;
+                    int cx = cpx + i;
+                    int cz = cpz + j;
                     int worldX = cx * Chunk.WIDTH;
                     int worldZ = cz * Chunk.DEPTH;
                     if (pos.distance(worldX, pos.y, worldZ) > Settings.renderDistance * 23) continue;
-                    Chunk c = getChunk(cx, cz);
-                    if (c == null) {
-                        Chunk nc = new Chunk(this,cx, cz);
-                        addChunkBuild(nc, false);
+                    int hash = Objects.hash(cpx,cpz);
+                    if(activeChunks.containsKey(hash)) {
+                        System.out.println("HERE DUDE!!");
+                        addChunkBuild(activeChunks.get(hash),false);
                     } else {
-                    /*
-                if(pos.distance(worldX,pos.y,worldZ) > Settings.renderDistance*23){
-                    c.setRenderable(false);
-                }else{
-                    c.setRenderable(true);
-                }
-
-                     */
-
-
+                        Chunk c = getChunk(cx, cz);
+                        if (c == null) {
+                            Chunk nc = new Chunk(this, cx, cz);
+                            addChunkBuild(nc, false);
+                        } else {
+                        }
                     }
 
             /*
@@ -143,8 +137,7 @@ public class World implements ChunkProvider{
             int worldX = c.getX() * Chunk.WIDTH;
             int worldZ = c.getZ() * Chunk.DEPTH;
             if (pos.distance(worldX, pos.y, worldZ) > Settings.renderDistance * 23){
-                cord.set(c.getX(),c.getZ());
-                chunkMap.remove(cord);
+                chunkMap.remove(Objects.hash(c.getX(),c.getZ()));
                 c.destroy();
                 cache.addCache(c);
                 it.remove();
@@ -158,10 +151,11 @@ public class World implements ChunkProvider{
         addChunk(c);
         ChunkBlockBuilder.addChunk(c);
     }
-
     private void addChunk(Chunk c){
         int x = c.getX();
         int z = c.getZ();
+        int code = Objects.hash(x,z);
+        if(chunkMap.containsKey(code)) return;
 
         Chunk neigh;
         if((neigh = getChunk(x-1,z)) != null){
@@ -198,10 +192,8 @@ public class World implements ChunkProvider{
             c.setNeighbour(neigh,Neighbour.LEFT_FRONT);
         }
 
-        Coord cord = new Coord(x,z);
-        if(chunkMap.containsKey(cord)) return;
         chunks.add(c);
-        chunkMap.put(cord,c);
+        chunkMap.put(code,c);
 
     }
 
@@ -222,19 +214,27 @@ public class World implements ChunkProvider{
     }
 
     private Chunk previousChunk;
-    private Vector3i worldBlockPos = new Vector3i(0,0,0);
     public short getBlock(int x, int y,int z){
-        Vector2i p = ChunkTools.toChunkPosition(x,z,cPos);
-        Vector3i blockPos = ChunkTools.toBlockPosition(x,y,z,worldBlockPos);
-        return getChunk(p.x,p.y).getBlock(blockPos.x,blockPos.y,blockPos.z);
+        int cpx = ChunkTools.toChunkPosition(x);
+        int cpz = ChunkTools.toChunkPosition(z);
+        int bx = ChunkTools.toBlockPosition(x);
+        int bz = ChunkTools.toBlockPosition(z);
+        //System.out.println(cpx + " | " + cpz);
+        Chunk c = getChunk(cpx,cpz);
+        if(c == null)
+            return Block.AIR;
+        return c.getBlock(bx,y,bz);
     }
 
     @Override
     public int getHeight(int x, int z) {
-        Chunk c = getChunk(ChunkTools.toChunkPosition(x,z,cPos));
+        int cpx = ChunkTools.toChunkPosition(x);
+        int cpz = ChunkTools.toChunkPosition(z);
+        Chunk c = getChunk(cpx,cpz);
         if(c == null) return 0;
-
-        return c.getHeight(ChunkTools.toBlockPosition(x),ChunkTools.toBlockPosition(z));
+        int bx = ChunkTools.toBlockPosition(x);
+        int bz = ChunkTools.toBlockPosition(z);
+        return c.getHeight(bx,bz);
     }
 
     @Override
@@ -242,20 +242,21 @@ public class World implements ChunkProvider{
 
     }
 
-    private static Coord cord = new Coord(0,0);
-
-    public Chunk getChunk(int x, int z){
+    public synchronized Chunk getChunk(int x, int z){
 
         if(previousChunk != null && x == previousChunk.getX() && z == previousChunk.getZ()){
             return previousChunk;
         }
-        cord.set(x,z);
-        previousChunk = chunkMap.get(cord);
+        int hash = Objects.hash(x,z);
+        previousChunk = chunkMap.get(hash);
+        if(previousChunk == null) {
+            previousChunk = activeChunks.get(hash);
+        }
         return previousChunk;
 
     }
 
-    public Chunk getChunk(Vector2i pos){
+    public synchronized Chunk getChunk(Vector2i pos){
         return getChunk(pos.x,pos.y);
     }
 
@@ -264,14 +265,21 @@ public class World implements ChunkProvider{
         ChunkModelBuilder.stop();
     }
 
-    public void setBlock(int x, int y, int z, short blockid) {
-        Chunk c = getChunk(ChunkTools.toChunkPosition(x,z,cPos));
+    public synchronized void setBlock(int x, int y, int z, short blockid) {
+        int cpx = ChunkTools.toChunkPosition(x);
+        int cpz = ChunkTools.toChunkPosition(z);
+        Chunk c = getChunk(cpx,cpz);
         if(c == null) {
-            Vector2i p = ChunkTools.toChunkPosition(x,z,cPos);
+            c = new Chunk(this,cpx,cpz);
+            int bx = ChunkTools.toBlockPosition(x);
+            int bz = ChunkTools.toBlockPosition(z);
+            c.setBlock(bx,y,bz,blockid);
+            activeChunks.put(Objects.hash(cpx,cpz),c);
             return;
         }
-        Vector3i bPos = ChunkTools.toBlockPosition(x,y,z,worldBlockPos);
-        c.setBlock(bPos.x, bPos.y, bPos.z, blockid);
+        int bx = ChunkTools.toBlockPosition(x);
+        int bz = ChunkTools.toBlockPosition(z);
+        c.setBlock(bx,y,bz, blockid);
     }
 
     private class ChunkSortComparator implements Comparator<Chunk> {
@@ -282,9 +290,9 @@ public class World implements ChunkProvider{
             double dist = c1.getWorldPosition().distanceSquared((int)pos.x,(int)pos.z);
             double dist2 = c2.getWorldPosition().distanceSquared((int)pos.x,(int)pos.z);
             if(dist < dist2) {
-                return -1;
-            } else if(dist2 > dist) {
                 return 1;
+            } else if(dist2 > dist) {
+                return -1;
             } else {
                 return 0;
             }

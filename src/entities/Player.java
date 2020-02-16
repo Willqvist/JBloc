@@ -38,7 +38,7 @@ public class Player extends PhysicsEntity {
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(8000,320,7100);
+        getTransform().setPosition(20000,320,7100);
         //System.out.println((int)Float.MAX_VALUE);
         camera.update();
     }

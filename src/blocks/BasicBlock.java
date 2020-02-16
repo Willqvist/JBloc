@@ -10,12 +10,12 @@ public class BasicBlock extends Block {
     private int lightPen = 0;
     private boolean blocksLight = true;
 
-    public BasicBlock(short id, TextureCoordinate textureCoordinate) {
-        super(id, textureCoordinate);
+    public BasicBlock(short id, String name, TextureCoordinate textureCoordinate) {
+        super(id,name, textureCoordinate);
     }
 
-    public BasicBlock(short id, TextureCoordinate textureCoordinate, boolean opaque, boolean renderable, boolean solid,boolean blocksLight, int lightPenitration) {
-        super(id, textureCoordinate);
+    public BasicBlock(short id, String name, TextureCoordinate textureCoordinate, boolean opaque, boolean renderable, boolean solid,boolean blocksLight, int lightPenitration) {
+        super(id,name, textureCoordinate);
         this.opaque = opaque;
         this.renderable = renderable;
         this.solid = solid;

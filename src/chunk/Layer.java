@@ -13,6 +13,7 @@ import engine.tools.RoffColor;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 
 public class Layer implements IRenderable {
@@ -78,7 +79,7 @@ public class Layer implements IRenderable {
         this.dirty = dirty;
     }
 
-    public void onNewBlockSet(int x,int y,int z,short block){
+    public void onNewBlockSet(int x, int y, int z, short block){
         onBlockSet(x,y,z,block);
 
         if(x == 0)
@@ -104,6 +105,7 @@ public class Layer implements IRenderable {
 
     private void rebuild(int y, Neighbour neighbour) {
         Chunk n = c.getNeighbour(neighbour);
+        if(n == null) return;
         DirtyLayerProvider.addLayer(n.getLayer(y));
         if(y % Chunk.LAYER_HEIGHT == Chunk.LAYER_HEIGHT-1 && y <= Chunk.HEIGHT-Chunk.LAYER_HEIGHT) {
             DirtyLayerProvider.addLayer(n.getLayer(y+Chunk.LAYER_HEIGHT));
@@ -199,22 +201,16 @@ public class Layer implements IRenderable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Layer layer = (Layer) o;
-        return renderable == layer.renderable &&
-                dirty == layer.dirty &&
-                y == layer.y &&
-                renderableBlocks == layer.renderableBlocks &&
-                Objects.equals(model, layer.model) &&
-                Objects.equals(transparentModel, layer.transparentModel) &&
-                Arrays.equals(layerOpaque, layer.layerOpaque) &&
-                Objects.equals(blockEditListeners, layer.blockEditListeners) &&
-                Objects.equals(c, layer.c);
+        Layer l = (Layer) o;
+        return (l.getY() == this.getY() &&
+            l.c.getX() == c.getX() &&
+            l.c.getZ() == c.getZ());
+
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(model, transparentModel, renderable, dirty, y, blockEditListeners, c, renderableBlocks);
-        result = 31 * result + Arrays.hashCode(layerOpaque);
+        int result = Objects.hash(c.getX(),c.getZ(),y);
         return result;
     }
 }

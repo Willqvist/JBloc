@@ -9,7 +9,7 @@ public class BlockTorch extends Block {
     private static BlockModel torchModel = new TorchModel();
     private static AABB ab = new AABB(0.4f,0,0.4f,0.2f,0.8f,0.2f);
     public BlockTorch(short id) {
-        super(id);
+        super(id,"Torch");
     }
 
     @Override

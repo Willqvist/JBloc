@@ -27,17 +27,16 @@ public class Game implements Application {
         StandardMaterial chunkMaterial = new StandardMaterial();
         chunkMaterial.setShader(new ChunkShader());
         MaterialBank.addMaterial("chunk",chunkMaterial);
-        camera = new Camera3D(60,Engine.window.getWidth(),Engine.window.getHeight(),.1f,900f);
+        camera = new Camera3D(60,Engine.window.getWidth(),Engine.window.getHeight(),.01f,1000f);
         Engine.camera.addCamera("main",camera);
         Engine.window.lockMouse();
         this.world = new World();
         MatrixTools.setOrigin(camera);
-
         Engine.window.onResize((w,h)->{
             camera.setViewport(w,h);
         });
 
-        //new GameView();
+        new GameView();
     }
 
     @Override

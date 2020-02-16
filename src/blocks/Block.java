@@ -17,13 +17,14 @@ public abstract class Block implements IBlock {
     private TextureCoordinate tex;
     protected short id=0;
     private static AABB ab = new AABB(0,0,0,1,1,1);
-
-    public Block(short id,TextureCoordinate textureCoordinate){
+    private String name;
+    public Block(short id,String name, TextureCoordinate textureCoordinate){
+        this(id,name);
         this.tex = textureCoordinate;
-        this.id=id;
     }
-    public Block(short id){
+    public Block(short id, String name){
         this.id=id;
+        this.name = name;
     }
 
     @Override
@@ -69,11 +70,11 @@ public abstract class Block implements IBlock {
         addBlock(new AirBlock());
         addBlock(new GrassBlock());
         addBlock(new BlockLog(LOG,TextureCoordinate.from(4,1,texture)));
-        addBlock(new BasicBlock(DIRT,TextureCoordinate.from(2,0, texture)));
-        addBlock(new BasicBlock(SAND,TextureCoordinate.from(2,1, texture)));
-        addBlock(new BasicBlock(STONE,TextureCoordinate.from(1,0, texture)));
-        addBlock(new BasicBlock(WATER,TextureCoordinate.from(13,12, texture),false,true,false,false,10));
-        addBlock(new BasicBlock(LEAF,TextureCoordinate.from(4,3, texture),false,true,true,false,5));
+        addBlock(new BasicBlock(DIRT,"Dirt",TextureCoordinate.from(2,0, texture)));
+        addBlock(new BasicBlock(SAND,"Sand",TextureCoordinate.from(2,1, texture)));
+        addBlock(new BasicBlock(STONE,"Stone",TextureCoordinate.from(1,0, texture)));
+        addBlock(new BasicBlock(WATER,"Water",TextureCoordinate.from(13,12, texture),false,true,false,false,10));
+        addBlock(new BasicBlock(LEAF,"Leaf",TextureCoordinate.from(4,3, texture),false,true,true,false,5));
         addBlock(new BlockTorch(TORCH));
     }
 
@@ -112,5 +113,9 @@ public abstract class Block implements IBlock {
 
     public boolean reciveShadows() {
         return true;
+    }
+
+    public String getName() {
+        return name;
     }
 }

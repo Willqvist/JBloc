@@ -7,6 +7,7 @@ import chunk.Layer;
 import chunk.Neighbour;
 import engine.model.ModelBuilder;
 import engine.texture.TextureCoordinate;
+import settings.Settings;
 
 public class LayerBuilder {
 
@@ -70,7 +71,7 @@ public class LayerBuilder {
 
     private byte getMinLightValue(Chunk c,BlockFace face,float side[],int i, int x,int y,int z){
         byte min = 0;
-        if(false) {
+        if(!Settings.smoothLightning) {
             if(face == BlockFace.TOP || face == BlockFace.BOTTOM) {
                return (byte)c.getLightValue(x,y+((face==BlockFace.TOP) ? 1 : -1),z);
             }

@@ -5,7 +5,7 @@ import engine.texture.TextureCoordinate;
 public class AirBlock extends Block {
 
     public AirBlock() {
-        super(AIR);
+        super(AIR,"Air");
     }
 
     @Override

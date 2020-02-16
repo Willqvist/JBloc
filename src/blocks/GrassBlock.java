@@ -8,7 +8,7 @@ public class GrassBlock extends Block {
     private TextureCoordinate bottom = TextureCoordinate.from(2,0, texture);
     private TextureCoordinate side = TextureCoordinate.from(3,0, texture);
     public GrassBlock() {
-        super(GRASS);
+        super(GRASS,"Grass");
     }
 
 

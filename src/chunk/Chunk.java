@@ -3,28 +3,20 @@ package chunk;
 import biome.Biome;
 import blocks.Block;
 import blocks.WorldBlock;
-import chunk.builder.ChunkLightPass;
 import chunk.builder.ChunkModelBuilder;
 import engine.Engine;
 import engine.materials.MaterialBank;
 import engine.materials.StandardMaterial;
-import engine.model.ModelBuilder;
-import engine.model.ModelInstance;
 import engine.physics.AABB;
 import engine.physics.*;
-import engine.render.AABBRenderer;
 import engine.render.Renderer;
 import engine.tools.RoffColor;
 import entities.Entity;
 import entities.PhysicsEntity;
-import entities.Player;
 import org.joml.*;
-import org.lwjgl.opengl.GL11;
-import world.World;
 
 import java.awt.*;
 import java.lang.Math;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
 
@@ -38,7 +30,7 @@ public class Chunk implements ICollideable, ICollisionPool {
     private short[] blocks = new short[WIDTH*HEIGHT*DEPTH];
     private int[] lightValue = new int[WIDTH*HEIGHT*DEPTH];
     private ArrayList<int[]> lightSources = new ArrayList<>();
-    private byte[] height = new byte[WIDTH*DEPTH];
+    private short[] height = new short[WIDTH*DEPTH];
     private boolean built=false;
     private Chunk[] neightbours = new Chunk[Neighbour.values().length-2];
     private int maxHeight=0;
@@ -51,6 +43,9 @@ public class Chunk implements ICollideable, ICollisionPool {
     private ArrayList<Entity> entities = new ArrayList<>();
     private ArrayList<PhysicsEntity> physicsEntities = new ArrayList<>();
     private ChunkProvider chunkProvider;
+    private ChunkState state = ChunkState.STABLE;
+    private HashSet<Layer> affectedLayers = new HashSet<Layer>();
+
     public Chunk(ChunkProvider chunkProvider, int x, int z){
         this.x = x;
         this.z = z;
@@ -66,12 +61,12 @@ public class Chunk implements ICollideable, ICollisionPool {
 
     }
 
-    public int getHeight(int x,int z){
+    public short getHeight(int x,int z){
         return height[x*DEPTH+z];
     }
 
     private void setHeight(int x,int z,int height){
-        this.height[x*DEPTH+z] = (byte)height;
+        this.height[x*DEPTH+z] = (short)height;
     }
 
     public Layer[] getLayers(){
@@ -98,6 +93,9 @@ public class Chunk implements ICollideable, ICollisionPool {
                 boolean isSky = true;
                 for(int y = Chunk.HEIGHT - 1; y >= 0; y--){
                     short block = biome.getBlock(this.x * WIDTH + x, y, this.z * DEPTH + z, height);
+                    if(block == Block.AIR && Block.getBlock(getBlock(x,y,z)).isSolid()) {
+                        block = getBlock(x,y,z);
+                    }
                     Block b = Block.getBlock(block);
                     //float noise = tools.NoiseBuilder.noise((getX()*Chunk.WIDTH+x)/80f,(y*Chunk.WIDTH+y)/200f,(getZ()*Chunk.DEPTH+z)/80f)*1.05f;
                     //short block = (120+(HEIGHT-120)*noise > y ? Block.GRASS : Block.AIR);
@@ -116,13 +114,13 @@ public class Chunk implements ICollideable, ICollisionPool {
                     }
 
                     if(b.isLightSource() && block != Block.AIR) {
-                        setLightSource(x,y,z,true);
-                        setLightValue(x,y,z,(byte)b.getEmissionStrength());
+                        setLightSource(x, y, z, true);
+                        setLightValue(x, y, z, (byte) b.getEmissionStrength());
                     }
                     setBlock(x,y,z, block,false);
                 }
                 for (int y = Chunk.HEIGHT - 1; y >= 0; y--) {
-                    //biome.generateStructures(chunkProvider, getWorldPosition().x + x, y, getWorldPosition().y + z);
+                    biome.generateStructures(chunkProvider, getWorldPosition().x + x, y, getWorldPosition().y + z, height);
                 }
             }
         }
@@ -156,10 +154,10 @@ public class Chunk implements ICollideable, ICollisionPool {
     }
 
     private Vector3i lightSrc = new Vector3i(0,0,0);
-    private void calcLight(int x,int y,int z, int str,HashSet<Layer> chunksAffected) {
-        calcLight(x,y,z,str,chunksAffected,false);
+    private void calcLight(int x,int y,int z, int str) {
+        calcLight(x,y,z,str,false);
     }
-    private void calcLight(int x,int y,int z, int str,HashSet<Layer> chunksAffected, boolean debug) {
+    private void calcLight(int x,int y,int z, int str,boolean debug) {
         if(str <= 0) {
             setLightValue(x,y,z, 0);
             return;
@@ -167,8 +165,9 @@ public class Chunk implements ICollideable, ICollisionPool {
         if(debug) {
             //System.out.println("NEW STR: " + (str-Block.getBlock(getBlock(x,y,z)).getLightPenetration()));
         }
+        if(isOutsideY(y)) return;
         setLightValue(x,y,z, str);
-        chunksAffected.add(getChunk(x,y,z).getLayer(y));
+        DirtyLayerProvider.addLayer(getChunk(x,y,z).getLayer(y));
         /*
 
         int x = pos.x;
@@ -182,40 +181,40 @@ public class Chunk implements ICollideable, ICollisionPool {
         Block bottom = Block.getBlock(getBlock(x,y-1,z));
         int newStr = str-Block.getBlock(getBlock(x,y,z)).getLightPenetration();
         if(newStr > getLightValue(x-1,y,z) && !left.blocksLight()) {
-            calcLight(x-1,y,z, newStr,chunksAffected,debug);
+            calcLight(x-1,y,z, newStr,debug);
         }
         if(newStr > getLightValue(x+1,y,z) && !right.blocksLight()) {
-            calcLight(x+1,y,z, newStr,chunksAffected,debug);
+            calcLight(x+1,y,z, newStr,debug);
         }
         if(newStr > getLightValue(x,y,z+1) && !front.blocksLight()) {
-            calcLight(x,y,z+1, newStr,chunksAffected,debug);
+            calcLight(x,y,z+1, newStr,debug);
         }
         if(newStr > getLightValue(x,y,z-1) && !back.blocksLight()) {
-            calcLight(x,y,z-1, newStr,chunksAffected,debug);
+            calcLight(x,y,z-1, newStr,debug);
         }
         if(newStr > getLightValue(x,y+1,z) && !top.blocksLight()) {
-            calcLight(x,y+1,z, newStr,chunksAffected,debug);
+            calcLight(x,y+1,z, newStr,debug);
         }
         if(newStr > getLightValue(x,y-1,z) && !bottom.blocksLight()) {
-            calcLight(x,y-1,z, newStr,chunksAffected,debug);
+            calcLight(x,y-1,z, newStr,debug);
         }
 
     }
-    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected,short block) {
+    private void calcLightRemoval(int x,int y,int z,int str, short block) {
         HashSet<Vector3i> pos = new HashSet<>();
-        calcLightRemoval(x,y,z,str,chunksAffected,pos);
+        calcLightRemoval(x,y,z,str,pos);
         if(block >= 0) {
             this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
             setLightValue(x,y,z,0);
         }
         for (Vector3i v : pos) {
-            calcLight(v.x, v.y, v.z, getLightValue(v.x, v.y, v.z), chunksAffected,true);
+            calcLight(v.x, v.y, v.z, getLightValue(v.x, v.y, v.z),true);
         }
     }
-    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected) {
-        calcLightRemoval(x,y,z,str,chunksAffected,(short)-1);
+    private void calcLightRemoval(int x,int y,int z,int str) {
+        calcLightRemoval(x,y,z,str,(short)-1);
     }
-    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Layer> chunksAffected,HashSet<Vector3i> newLightBlocks) {
+    private void calcLightRemoval(int x,int y,int z,int str, HashSet<Vector3i> newLightBlocks) {
         if(str <= 0) {
             return;
         }
@@ -223,7 +222,7 @@ public class Chunk implements ICollideable, ICollisionPool {
         setLightValue(x,y,z, 0);
         Chunk c = getChunk(x,y,z);
         c.lightDirty = true;
-        chunksAffected.add(getChunk(x,y,z).getLayer(y));
+        DirtyLayerProvider.addLayer(getChunk(x,y,z).getLayer(y));
         /*
 
         int x = pos.x;
@@ -238,37 +237,37 @@ public class Chunk implements ICollideable, ICollisionPool {
         int newStr = str-Block.getBlock(getBlock(x,y,z)).getLightPenetration();
         int val;
         if(newStr == (val=getLightValue(x-1,y,z)) && !left.blocksLight()) {
-            calcLightRemoval(x-1,y,z, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x-1,y,z, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x-1,y,z));
         }
         if(newStr == (val=getLightValue(x+1,y,z)) && !right.blocksLight()) {
-            calcLightRemoval(x+1,y,z, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x+1,y,z, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x+1,y,z));
         }
         if(newStr == (val=getLightValue(x,y,z+1)) && !front.blocksLight()) {
-            calcLightRemoval(x,y,z+1, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x,y,z+1, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x,y,z+1));
         }
         if(newStr == (val=getLightValue(x,y,z-1)) && !back.blocksLight()) {
-            calcLightRemoval(x,y,z-1, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x,y,z-1, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x,y,z-1));
         }
         if(newStr == (val=getLightValue(x,y+1,z)) && !top.blocksLight()) {
-            calcLightRemoval(x,y+1,z, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x,y+1,z, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x,y+1,z));
         }
         if(newStr == (val=getLightValue(x,y-1,z)) && !bottom.blocksLight()) {
-            calcLightRemoval(x,y-1,z, newStr,chunksAffected,newLightBlocks);
+            calcLightRemoval(x,y-1,z, newStr,newLightBlocks);
         }
         else if(val > newStr) {
             newLightBlocks.add(new Vector3i(x,y-1,z));
@@ -288,10 +287,8 @@ public class Chunk implements ICollideable, ICollisionPool {
 
     //TODO: remove lights when all surrounding chunks has been built so that no unecessary lights exist.
     private static Object staticLock = new Object();
-    private static HashSet<Layer> affectedChunks = new HashSet<Layer>();
     private void setLights() {
         synchronized (staticLock) {
-            affectedChunks.clear();
             for (int x = 0; x < WIDTH; x++) {
                 for (int z = 0; z < DEPTH; z++) {
                     for (int y = 0; y < HEIGHT; y++) {
@@ -307,13 +304,13 @@ public class Chunk implements ICollideable, ICollisionPool {
                         } else if (isLightSource(x, y, z)) {
                             int str = Block.getBlock(getBlock(x,y,z)).getEmissionStrength();
                             setLightValue(x, y, z, str);
-                            calcLight(x, y, z, str,affectedChunks);
+                            calcLight(x, y, z, str);
                         }
 
                     }
                 }
             }
-            rebuildSet(affectedChunks);
+            DirtyLayerProvider.build();
         }
     }
 
@@ -461,14 +458,6 @@ public class Chunk implements ICollideable, ICollisionPool {
         return neightbours[neighbour.ordinal()];
     }
 
-    private void rebuildSet(HashSet<Layer> layers) {
-        Iterator<Layer> c = layers.iterator();
-        while(c.hasNext()) {
-            Layer n = c.next();
-            ChunkModelBuilder.addLayer(n);
-        }
-    }
-
     private int getBiggestNeighbourLightValue(int x,int y,int z) {
         return Math.max(getLightValue(x-1,y,z),
                Math.max(getLightValue(x+1,y,z),
@@ -487,6 +476,8 @@ public class Chunk implements ICollideable, ICollisionPool {
             setHeight(x,z,y);
         }
 
+        if(isOutsideY(y)) return;
+
         dirty = true;
         lightDirty = true;
         if(!built)
@@ -495,10 +486,9 @@ public class Chunk implements ICollideable, ICollisionPool {
             Block b = Block.getBlock(block);
             if(block == Block.AIR && getBlock(x,y+1,z) == Block.AIR && isLightSource(x,y+1,z)) {
                 this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
-                HashSet<Layer> affC = new HashSet<>();
-                skyLightRecurse(x,y,z,true,affC);
-                rebuildSet(affC);
+                skyLightRecurse(x,y,z,true);
             }
+            /*
             else if(!b.isLightSource()) {
                 HashSet<Layer> affC = new HashSet<>();
 
@@ -520,29 +510,29 @@ public class Chunk implements ICollideable, ICollisionPool {
             } else {
                 setLightSource(x,y,z,true);
             }
+            */
             getLayer(y).onNewBlockSet(x, y, z, block);
         }
 
         this.blocks[x * HEIGHT * DEPTH + y * DEPTH + z] = block;
     }
 
-    private void skyLightRecurse(int x,int y,int z, boolean isLight, HashSet<Layer> layers) {
+    private void skyLightRecurse(int x,int y,int z, boolean isLight) {
         if(y == 0) {
             return;
         }
         short block = getBlock(x,y,z);
         if((isLight || block == Block.AIR) && !Block.getBlock(block).blocksLight()) {
             setLightSource(x,y,z,isLight);
-            System.out.println("recurse blocks set:  " + x + " | " + y + " | " + z + " | " + (y/LAYER_HEIGHT));
-            layers.add(getLayer(y));
+            DirtyLayerProvider.addLayer(getLayer(y));
             lightDirty = true;
             if(isLight) {
                 //setLightValue(x,y,z,Math.max(0,str));
                 //calcLight(x,y,z,getLightValue(x,y,z),layers);
             } else {
-                calcLightRemoval(x,y,z,getLightValue(x,y,z),layers);
+                calcLightRemoval(x,y,z,getLightValue(x,y,z));
             }
-            skyLightRecurse(x,y-1,z,isLight,layers);
+            skyLightRecurse(x,y-1,z,isLight);
         }
     }
 
@@ -674,6 +664,16 @@ public class Chunk implements ICollideable, ICollisionPool {
         if(entities.size() == 0) {
             Engine.physics.removeCollisionPool(this);
         }
+    }
+
+    public void setState(ChunkState state) {
+        if(this.state == state) {
+            return;
+        }
+        if(state == ChunkState.STABLE && this.state == ChunkState.EDITING) {
+            setLights();
+        }
+        this.state = state;
     }
 
     private ArrayList<WorldBlock> collisionResult = new ArrayList<>();

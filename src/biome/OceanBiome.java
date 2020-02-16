@@ -32,7 +32,7 @@ public class OceanBiome extends Biome {
     }
 
     @Override
-    public void generateStructures(IBlockHolder holder, int x, int y, int z) {
+    public void generateStructures(IBlockHolder holder, int x, int y, int z, int height) {
 
     }
 

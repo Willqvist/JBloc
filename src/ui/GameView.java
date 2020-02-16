@@ -25,7 +25,7 @@ public class GameView {
         Frame frame = UIManager.getFrame();
         Panel panel = new Panel(Scale.SCALE_TO_FIT);
         panel.setHeight(50);
-        panel.setWidth(100);
+        panel.setWidth(100);G
         panel.setMaxWidth(900);
         panel.setMargin(10,Unit.PIXEL);
         panel.setBackgroundColor(RoffColor.from(Color.red));
