@@ -11,6 +11,7 @@ import chunk.builder.ChunkModelBuilder;
 import engine.Engine;
 import engine.camera.Camera3D;
 import engine.render.AABBRenderer;
+import engine.render.CubeMap;
 import engine.render.Renderer;
 import entities.Entity;
 import entities.PhysicsEntity;
@@ -33,6 +34,7 @@ public class World implements ChunkProvider{
     private int lastPosX,lastPosZ;
     private ChunkCache cache;
     private ChunkSortComparator sortComparator = new ChunkSortComparator();
+    private CubeMap map;
     public World(){
         Biome.setGenerator(new NormalBiomGenerator());
         camera = (Camera3D) Engine.camera.getCamera("main");
@@ -45,6 +47,7 @@ public class World implements ChunkProvider{
         addEntity(player);
         AABBRenderer.init();
         this.cache = new ChunkCache();
+        this.map = new CubeMap("day");
         /*
         ChunkBlockBuilder.lock();
             for(int i = 0; i < 32; i++){
@@ -198,6 +201,7 @@ public class World implements ChunkProvider{
     }
 
     public void render(Renderer renderer){
+        map.render(renderer);
         for(int i = 0; i < chunks.size(); i++){
             //if(chunks.get(i).getCollider().testFrustum(camera.getFrustum()))
                 chunks.get(i).render(renderer);
@@ -260,6 +264,12 @@ public class World implements ChunkProvider{
         return getChunk(pos.x,pos.y);
     }
 
+    public synchronized Chunk getWorldChunk(int x,int z){
+        int cpx = ChunkTools.toChunkPosition(x);
+        int cpz = ChunkTools.toChunkPosition(z);
+        return getChunk(cpx,cpz);
+    }
+
     public void end() {
         ChunkBlockBuilder.join();
         ChunkModelBuilder.stop();
@@ -280,6 +290,18 @@ public class World implements ChunkProvider{
         int bx = ChunkTools.toBlockPosition(x);
         int bz = ChunkTools.toBlockPosition(z);
         c.setBlock(bx,y,bz, blockid);
+    }
+
+    public void placeBlock(Entity entity, int x, int y, int z, short blockid) {
+        int cpx = ChunkTools.toChunkPosition(x);
+        int cpz = ChunkTools.toChunkPosition(z);
+        Chunk c = getChunk(cpx,cpz);
+        if(c == null) {
+            return;
+        }
+        int bx = ChunkTools.toBlockPosition(x);
+        int bz = ChunkTools.toBlockPosition(z);
+        c.placeBlock(entity,bx,y,bz, blockid);
     }
 
     private class ChunkSortComparator implements Comparator<Chunk> {

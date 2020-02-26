@@ -40,7 +40,7 @@ public class AirBlock extends Block {
 
     @Override
     public int getLightPenetration() {
-        return 2;
+        return 1;
     }
 
     @Override

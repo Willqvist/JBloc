@@ -41,7 +41,7 @@ public class RiverBiome extends Biome {
 
     @Override
     public int smoothRange() {
-        return 13;
+        return 11;
     }
 
     @Override

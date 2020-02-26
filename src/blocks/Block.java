@@ -73,7 +73,7 @@ public abstract class Block implements IBlock {
         addBlock(new BasicBlock(DIRT,"Dirt",TextureCoordinate.from(2,0, texture)));
         addBlock(new BasicBlock(SAND,"Sand",TextureCoordinate.from(2,1, texture)));
         addBlock(new BasicBlock(STONE,"Stone",TextureCoordinate.from(1,0, texture)));
-        addBlock(new BasicBlock(WATER,"Water",TextureCoordinate.from(13,12, texture),false,true,false,false,10));
+        addBlock(new BasicBlock(WATER,"Water",TextureCoordinate.from(13,12, texture),false,true,false,false,10,false));
         addBlock(new BasicBlock(LEAF,"Leaf",TextureCoordinate.from(4,3, texture),false,true,true,false,5));
         addBlock(new BlockTorch(TORCH));
     }

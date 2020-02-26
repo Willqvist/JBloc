@@ -79,18 +79,25 @@ public class Layer implements IRenderable {
         this.dirty = dirty;
     }
 
-    public void onNewBlockSet(int x, int y, int z, short block){
+    public void placeBlock(int x, int y, int z, short block){
         onBlockSet(x,y,z,block);
 
+        rebuildNeighbours(x,y,z);
+
+        DirtyLayerProvider.addLayer(this);
+
+    }
+
+    private void rebuildNeighbours(int x,int y,int z) {
         if(x == 0)
-            rebuild(y,Neighbour.LEFT);
+            rebuild(x,y,z,Neighbour.LEFT);
         if(x == Chunk.WIDTH-1)
-            rebuild(y,Neighbour.RIGHT);
+            rebuild(x,y,z,Neighbour.RIGHT);
         if(z == 0) {
-            rebuild(y,Neighbour.FRONT);
+            rebuild(x,y,z,Neighbour.FRONT);
         }
         if(z == Chunk.DEPTH-1) {
-            rebuild(y,Neighbour.BACK);
+            rebuild(x,y,z,Neighbour.BACK);
         }
         if(y % Chunk.LAYER_HEIGHT == Chunk.LAYER_HEIGHT-1 && y <= Chunk.HEIGHT-Chunk.LAYER_HEIGHT) {
             DirtyLayerProvider.addLayer(c.getLayer(y+Chunk.LAYER_HEIGHT));
@@ -98,12 +105,9 @@ public class Layer implements IRenderable {
         if(y % Chunk.LAYER_HEIGHT == 0 && y >= Chunk.LAYER_HEIGHT) {
             DirtyLayerProvider.addLayer(c.getLayer(y-Chunk.LAYER_HEIGHT));
         }
-
-        DirtyLayerProvider.addLayer(this);
-
     }
 
-    private void rebuild(int y, Neighbour neighbour) {
+    private void rebuild(int x,int y,int z, Neighbour neighbour) {
         Chunk n = c.getNeighbour(neighbour);
         if(n == null) return;
         DirtyLayerProvider.addLayer(n.getLayer(y));
@@ -212,5 +216,10 @@ public class Layer implements IRenderable {
     public int hashCode() {
         int result = Objects.hash(c.getX(),c.getZ(),y);
         return result;
+    }
+
+    public void setLightValue(int x, int y, int z) {
+        rebuildNeighbours(x,y,z);
+        DirtyLayerProvider.addLayer(this);
     }
 }

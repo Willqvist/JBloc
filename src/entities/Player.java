@@ -38,7 +38,7 @@ public class Player extends PhysicsEntity {
         ((AABB)getCollider()).setOffset(0.1f,0,0.1f);
         camera.follow(this.getTransform());
         camera.getTransform().setPosition(0.5f,1.8f,0.5f);
-        getTransform().setPosition(20000,320,7100);
+        getTransform().setPosition(200000,320,49100);
         //System.out.println((int)Float.MAX_VALUE);
         camera.update();
     }
@@ -84,6 +84,11 @@ public class Player extends PhysicsEntity {
         boolean movedMouse = CameraMath.followMouse(camera,Engine.mouse,.002f,0.4f);
         if(movedMouse || moved || !this.velocity.isZero()){
             camera.update();
+            if(chunk != null) {
+                Vector3d p = getTransform().getPosition();
+                ChunkTools.toBlockPosition((int)p.x,(int)p.y,(int)p.z,pos);
+                //System.out.println(chunk.getSkyLightValue(pos.x,pos.y,pos.z));
+            }
         }
 
         if(Engine.mouse.isLeftPressed()) {
@@ -93,7 +98,7 @@ public class Player extends PhysicsEntity {
             rayPlaceBlock(Block.TORCH);
         }
         else if(Engine.mouse.isRightPressed()) {
-            rayPlaceBlock(Block.LEAF);
+            rayPlaceBlock(Block.STONE);
         }
 
         if(chunk != null) {
@@ -132,7 +137,7 @@ public class Player extends PhysicsEntity {
         if(result.isValid()) {
             Vector3i pos = result.getFace().add(pickedBlockPosition);
             if(!Block.getBlock(blockid).getCollisionBox(pos.x,pos.y,pos.z).isColliding((AABB)this.getCollider())) {
-                world.setBlock(pos.x, pos.y, pos.z,blockid);
+                world.placeBlock(this,pos.x, pos.y, pos.z,blockid);
                 DirtyLayerProvider.build();
             }
             //result.getFace()
@@ -157,7 +162,7 @@ public class Player extends PhysicsEntity {
         RayTracer.TraceResult result = traceBlock();
 
         if(result.isValid() && pickedChunk != null) {
-            world.setBlock(pickedBlockPosition.x,pickedBlockPosition.y,pickedBlockPosition.z,Block.AIR);
+            world.placeBlock(this,pickedBlockPosition.x,pickedBlockPosition.y,pickedBlockPosition.z,Block.AIR);
             DirtyLayerProvider.build();
         }
 
